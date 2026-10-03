@@ -1,0 +1,14 @@
+# Bỏ qua môi trường ảo Python
+venv/
+env/
+
+# Bỏ qua file rác của hệ điều hành
+.DS_Store
+Thumbs.db
+
+# Bỏ qua các file biên dịch của Python
+__pycache__/
+*.pyc
+
+# BẢO MẬT: TUYỆT ĐỐI KHÔNG PUSH FILE NÀY LÊN (Chứa Secret Key, Pass DB)
+.env
