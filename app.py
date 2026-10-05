@@ -2,25 +2,31 @@ from flask import Flask
 from flask_wtf.csrf import CSRFProtect, CSRFError
 
 import urllib.parse
+import os                      
+from dotenv import load_dotenv
+
+
 from flask_migrate import Migrate 
 from src.models import db 
 
 app=Flask(__name__)
 
+load_dotenv()
 
-app.config['SECRET_KEY'] = "chuoi-bi-mat"
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
 
-# CẤU HÌNH KẾT NỐI SQL SERVER (DÙNG ACC SA)
 # ==========================================
-# 1. Điền thông tin của em vào đây:
-db_user = 'sa'
-db_password = urllib.parse.quote_plus('1') # Tự động mã hóa ký tự đặc biệt
-db_server = 'localhost\\SQLEXPRESS' 
-db_name = 'qa_forum_db'
+# CẤU HÌNH KẾT NỐI SQL SERVER (TCP/IP - KHÔNG DÙNG ODBC)
+# ==========================================
+db_server = os.getenv('DB_SERVER')
+db_port = os.getenv('DB_PORT')
+db_name = os.getenv('DB_NAME')
+db_user = os.getenv('DB_USER')
+db_password = urllib.parse.quote_plus(os.getenv('DB_PASSWORD'))
 
-# 2. Tạo chuỗi kết nối
-app.config['SQLALCHEMY_DATABASE_URI'] = f'mssql+pyodbc://{db_user}:{db_password}@{db_server}/{db_name}?driver=ODBC+Driver+17+for+SQL+Server'
+# Chuỗi kết nối dùng pymssql 
+app.config['SQLALCHEMY_DATABASE_URI'] = f'mssql+pymssql://{db_user}:{db_password}@{db_server}:{db_port}/{db_name}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Khởi tạo Database và Migrate với App
