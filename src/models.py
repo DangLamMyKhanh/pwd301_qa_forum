@@ -1,5 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+from flask_login import UserMixin
 
 # Khởi tạo công cụ Database (Chưa kết nối)
 db = SQLAlchemy()
@@ -11,7 +12,12 @@ question_tag_m2m = db.Table('question_tag',
 )
 
 # 2. BẢNG NGƯỜI DÙNG
-class User(db.Model):
+class User(db.Model, UserMixin):
+    #UserMixin:
+    #is_authenticated: Trả về True nếu người dùng đã đăng nhập hợp lệ.
+    #is_active: Trả về True nếu tài khoản đang hoạt động (ví dụ: chưa bị khóa hay ban).
+    #is_anonymous: Trả về False (để phân biệt với khách chưa đăng nhập).
+    #get_id(): Trả về ID của người dùng (dạng chuỗi) để hệ thống nhận diện.
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
