@@ -5,9 +5,9 @@ import urllib.parse
 import os                      
 from dotenv import load_dotenv
 
-
+from src.models import db, User
+from src.extensions import bcrypt, login_manager
 from flask_migrate import Migrate 
-from src.models import db 
 
 app=Flask(__name__)
 
@@ -29,13 +29,19 @@ db_password = urllib.parse.quote_plus(os.getenv('DB_PASSWORD'))
 app.config['SQLALCHEMY_DATABASE_URI'] = f'mssql+pymssql://{db_user}:{db_password}@{db_server}:{db_port}/{db_name}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Khởi tạo Database và Migrate với App
+# Khởi tạo các tiện ích với App
 db.init_app(app)
 migrate = Migrate(app, db)
-# ==========================================
+bcrypt.init_app(app)         # kích hoạt bcrypt
+login_manager.init_app(app)  # kích hoạt login Manager
 
 
 CSRFProtect(app)
+
+# Dạy cho LoginManager cách tìm User trong Database
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 # đăng ký các blueprint
 from src.auth import auth_bp
