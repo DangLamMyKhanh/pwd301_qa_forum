@@ -1,0 +1,25 @@
+# Bỏ qua môi trường ảo (Virtualenv)
+venv/
+env/
+.venv/
+
+# Bỏ qua Git
+.git/
+.gitignore
+
+# Bỏ qua bytecode Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Bỏ qua các file cấu hình nhạy cảm và file DB cục bộ
+.env
+*.db
+*.sqlite3
+
+# Bỏ qua file rác của hệ điều hành và IDE
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
