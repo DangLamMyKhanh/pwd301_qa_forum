@@ -1,8 +1,11 @@
-from flask import Blueprint, request, redirect, url_for, flash, abort
+from flask import Blueprint, request, redirect, url_for, flash, abort, render_template
 from flask_login import login_user, logout_user, login_required, current_user
 from src.models import db, User
 from src.extensions import bcrypt
 from functools import wraps
+
+from src.forms import LoginForm, RegistrationForm, QuestionForm, AnswerForm
+
 
 # Khởi tạo Blueprint có tên là 'auth'
 auth_bp = Blueprint('auth', __name__)
@@ -31,12 +34,41 @@ def role_required(*roles):
 # ==========================================
 @auth_bp.route("/register", methods=['GET', 'POST'])
 def register():
-    # TODO:
-    # Sau sẽ import Form của An 
-    # from src.forms import RegistrationForm
-    # form = RegistrationForm()
-    # if form.validate_on_submit():
-    pass
+
+    form = RegistrationForm()
+
+    if form.validate_on_submit():
+        # Kiểm tra trùng lặp username hoặc email
+        if User.query.filter_by(username=form.username.data).first():
+            flash('Tên đăng nhập đã tồn tại. Vui lòng chọn tên khác!', 'danger')
+            return render_template('register.html', form=form)
+            
+        if User.query.filter_by(email=form.email.data).first():
+            flash('Email này đã được đăng ký tài khoản rồi!', 'danger')
+            return render_template('register.html', form=form)
+
+        # 1. Băm cái mật khẩu thành chuỗi bí mật
+        hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
+        
+        # 2. Tạo đối tượng User mới với dữ liệu từ Form
+        user_moi = User(
+            username=form.username.data, 
+            email=form.email.data, 
+            password_hash=hashed_password
+        )
+        
+        # 3. Lưu vào Database
+        db.session.add(user_moi)
+        db.session.commit()
+        
+        # 4. Báo cáo thành công và đá sang trang Đăng nhập
+        flash('Tạo tài khoản thành công! Đăng nhập ngay nào.', 'success')
+        return redirect(url_for('auth.login'))
+
+    # NẾU LÀ TRUY CẬP BÌNH THƯỜNG (GET) HOẶC FORM BỊ LỖI KHI BẤM (POST)
+    # Thì hiển thị lại cái form cho người ta nhập lại
+    return render_template('register.html', form=form)
+   
 
 
 # ==========================================
@@ -44,9 +76,14 @@ def register():
 # ==========================================
 @auth_bp.route("/login", methods=['GET', 'POST'])
 def login():
-    if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
+    form = LoginForm()
+
+    # THAY ĐỔI 1: Hàm này sẽ tự động check phương thức POST + check CSRF Token + check Validator của Thành viên 2
+    if form.validate_on_submit(): 
+        
+        # THAY ĐỔI 2: Rút dữ liệu TỪ TRONG CÁI FORM ra, không dùng request.form.get nữa
+        email = form.email.data
+        password = form.password.data
         
         user = User.query.filter_by(email=email).first()
 
@@ -59,7 +96,8 @@ def login():
             flash('Email hoặc mật khẩu không đúng!', 'danger')
             # TODO: Sau này chèn hàm Ghi Log (Sai mật khẩu) vào đây
             
-    return "Gọi giao diện html Login"
+    # Nếu là GET hoặc form bị lỗi validator thì load lại trang
+    return render_template("login.html", form=form)
 
 
 # ==========================================

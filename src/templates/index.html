@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Trang chủ - Student Q&A Forum{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="text-center py-5">
+        <h1 class="fw-bold display-5">Student Q&A Forum</h1>
+        <p class="text-secondary lead mt-3">
+            Nơi sinh viên đặt câu hỏi, chia sẻ kiến thức và hỗ trợ nhau trong học tập.
+        </p>
+
+        {% if current_user.is_authenticated %}
+            <div class="alert alert-success d-inline-block px-4 py-2 mt-2">
+                <i class="fa-solid fa-circle-check me-2"></i> Xin chào, <strong>{{ current_user.username }}</strong>! Bạn đã đăng nhập thành công.
+            </div>
+            <div class="mt-4">
+                <a href="#" class="btn btn-primary btn-lg px-4 me-2">
+                    <i class="fa-solid fa-list me-2"></i>Xem câu hỏi
+                </a>
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger btn-lg px-4">
+                    <i class="fa-solid fa-right-from-bracket me-2"></i>Đăng xuất
+                </a>
+            </div>
+        {% else %}
+            <div class="mt-4 d-flex justify-content-center gap-3">
+                <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg px-4">
+                    <i class="fa-solid fa-right-to-bracket me-2"></i>Đăng nhập
+                </a>
+                <a href="{{ url_for('auth.register') }}" class="btn btn-warning btn-lg px-4">
+                    <i class="fa-solid fa-user-plus me-2"></i>Đăng ký ngay
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

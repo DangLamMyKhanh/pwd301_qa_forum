@@ -29,12 +29,15 @@ class User(db.Model, UserMixin):
     questions = db.relationship('Question', backref='author', lazy=True)
     answers = db.relationship('Answer', backref='author', lazy=True)
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
 # 3. BẢNG CÂU HỎI
 class Question(db.Model):
     __tablename__ = 'questions'
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(200), nullable=False)
-    content = db.Column(db.Text, nullable=False)
+    title = db.Column(db.Unicode(200), nullable=False)
+    content = db.Column(db.UnicodeText, nullable=False)
     views = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
@@ -44,22 +47,31 @@ class Question(db.Model):
     answers = db.relationship('Answer', backref='question', lazy=True, cascade="all, delete-orphan")
     tags = db.relationship('Tag', secondary=question_tag_m2m, backref=db.backref('questions', lazy='dynamic'))
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
 # 4. BẢNG CÂU TRẢ LỜI
 class Answer(db.Model):
     __tablename__ = 'answers'
     id = db.Column(db.Integer, primary_key=True)
-    content = db.Column(db.Text, nullable=False)
+    content = db.Column(db.UnicodeText, nullable=False)
     upvotes = db.Column(db.Integer, default=0) # Sẵn sàng cho AJAX cộng điểm
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     question_id = db.Column(db.Integer, db.ForeignKey('questions.id'), nullable=False)
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
 # 5. BẢNG CHỦ ĐỀ (TAGS)
 class Tag(db.Model):
     __tablename__ = 'tags'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), unique=True, nullable=False)
+    name = db.Column(db.Unicode(50), unique=True, nullable=False)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
 # 6. BẢNG LOG BẢO MẬT (SOC Flexing)
 class SecurityAuditLog(db.Model):
@@ -67,5 +79,8 @@ class SecurityAuditLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, nullable=True) # Có thể null nếu chưa đăng nhập
     ip_address = db.Column(db.String(50), nullable=False)
-    action = db.Column(db.String(255), nullable=False)
+    action = db.Column(db.Unicode(255), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)

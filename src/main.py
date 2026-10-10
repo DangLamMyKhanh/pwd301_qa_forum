@@ -1,8 +1,8 @@
-from flask import Blueprint
+from flask import Blueprint, render_template
 
 # Khởi tạo Blueprint có tên là 'main'
 main_bp = Blueprint('main', __name__)
 
 @main_bp.route('/')
 def index():
-    return "<h1>Trang chủ Diễn đàn (Main Blueprint)</h1>"
+    return render_template("index.html")

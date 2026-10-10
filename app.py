@@ -9,7 +9,7 @@ from src.models import db, User
 from src.extensions import bcrypt, login_manager
 from flask_migrate import Migrate 
 
-app=Flask(__name__)
+app = Flask(__name__, template_folder='src/templates', static_folder='src/static')
 
 load_dotenv()
 
@@ -23,7 +23,7 @@ db_server = os.getenv('DB_SERVER')
 db_port = os.getenv('DB_PORT')
 db_name = os.getenv('DB_NAME')
 db_user = os.getenv('DB_USER')
-db_password = urllib.parse.quote_plus(os.getenv('DB_PASSWORD'))
+db_password = os.getenv('DB_PASSWORD')
 
 # Chuỗi kết nối dùng pymssql 
 app.config['SQLALCHEMY_DATABASE_URI'] = f'mssql+pymssql://{db_user}:{db_password}@{db_server}:{db_port}/{db_name}'

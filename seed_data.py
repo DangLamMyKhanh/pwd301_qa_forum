@@ -13,6 +13,12 @@ import re
 import sys
 import unicodedata
 
+if sys.platform == "win32":
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8")
+
 from faker import Faker
 
 # Đặt SEED = 42 (hoặc số bất kỳ) nếu muốn mỗi lần chạy ra cùng một kết quả.
@@ -186,31 +192,96 @@ def generate_answers(questions, users, max_per_question=3):
     return answers
 
 
+# ===========================================================================
+# Khánh: KẾT NỐI VÀ ĐỔ DỮ LIỆU VÀO DATABASE
+# ===========================================================================
+from app import app
+from src.models import db, User, Question, Answer, Tag
+from src.extensions import bcrypt
+
+def seed_to_database():
+    """Hàm hút dữ liệu từ Faker và đổ vào SQL Server"""
+    
+    print("⏳ Đang sinh dữ liệu ảo...")
+    fake_users = generate_users(10)
+    fake_questions = generate_questions(fake_users, 15)
+    fake_answers = generate_answers(fake_questions, fake_users, max_per_question=3)
+
+    print("🚀 Đang kết nối Database và bơm dữ liệu...")
+    
+    # 1. BƠM USERS (Nhớ băm mật khẩu)
+    db_users = {} # Tạo dict để lưu User Object, lát nữa móc nối với Câu hỏi
+    for u_data in fake_users:
+        # Băm pass để tí nữa xài form login thật được
+        hashed_pw = bcrypt.generate_password_hash(u_data['password']).decode('utf-8')
+        
+        user = User(
+            username=u_data['username'],
+            email=u_data['email'],
+            password_hash=hashed_pw,
+            role='student'
+        )
+        db.session.add(user)
+        db_users[user.username] = user # Lưu tạm vào biến để lát gán tác giả
+        
+    db.session.commit() # Lưu User xong mới có ID
+    print(f"✅ Đã thêm {len(fake_users)} Users.")
+
+    # 2. BƠM QUESTIONS & TAGS (Xử lý Many-to-Many)
+    db_questions = {} # Lưu Question Object để lát gán Câu trả lời
+    for i, q_data in enumerate(fake_questions):
+        question = Question(
+            title=q_data['title'],
+            content=q_data['content'],
+            author=db_users[q_data['author']] # Lấy object User từ dict trên
+        )
+        db.session.add(question)
+        
+        # Xử lý Tags (Cắt chuỗi "python, lập trình" ra)
+        tag_names = [t.strip().lower() for t in q_data['tags'].split(',')]
+        for tag_name in tag_names:
+            if tag_name:
+                # Kiểm tra xem tag này đã có trong DB chưa, chưa có thì tạo mới
+                tag = Tag.query.filter_by(name=tag_name).first()
+                if not tag:
+                    tag = Tag(name=tag_name)
+                    db.session.add(tag)
+                # Gắn tag vào câu hỏi
+                question.tags.append(tag)
+        
+        db_questions[i] = question # Lưu vị trí index để lát gắn câu trả lời
+        
+    db.session.commit()
+    print(f"✅ Đã thêm {len(fake_questions)} Câu hỏi và Tags.")
+
+    # 3. BƠM ANSWERS
+    for a_data in fake_answers:
+        answer = Answer(
+            content=a_data['content'],
+            author=db_users[a_data['author']],
+            question=db_questions[a_data['question_index']],
+            upvotes=random.randint(0, 50) # Cho ngẫu nhiên vài vote nhìn cho xịn
+        )
+        db.session.add(answer)
+        
+    db.session.commit()
+    print(f"✅ Đã thêm {len(fake_answers)} Câu trả lời.")
+    print("🎉 HOÀN TẤT SEED DATA! Mở SQL Server lên xem thành quả nhé!")
+
 # ---------------------------------------------------------------------------
-# Chạy thử: python seed_data.py
+# CHẠY FILE: python seed_data.py
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
-    # Tránh lỗi hiển thị tiếng Việt trên terminal Windows
-    if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")
-
-    users = generate_users(10)
-    questions = generate_questions(users, 8)
-    answers = generate_answers(questions, users)
-
-    print("=" * 60)
-    print(f"DANH SÁCH {len(users)} USER")
-    print("=" * 60)
-    for u in users:
-        print(f"- {u['username']:<20} | {u['email']:<35} | mật khẩu: {u['password']}")
-
-    print()
-    print("=" * 60)
-    print(f"DANH SÁCH {len(questions)} CÂU HỎI (kèm câu trả lời)")
-    print("=" * 60)
-    for i, q in enumerate(questions):
-        print(f"\n[Q{i + 1}] {q['title']}")
-        print(f"     Nhãn: {q['tags']} | Người hỏi: {q['author']}")
-        print(f"     {q['content']}")
-        for a in (a for a in answers if a["question_index"] == i):
-            print(f"       -> {a['author']}: {a['content']}")
+    # CỰC KỲ QUAN TRỌNG: Phải bọc trong app_context() thì mới can thiệp DB được
+    with app.app_context():
+        # Xóa sạch data cũ để tránh lỗi trùng lặp (Duplicate Key) khi chạy nhiều lần
+        print("🧹 Đang dọn dẹp Database cũ...")
+        db.session.query(Answer).delete()
+        db.session.query(Question.tags.property.secondary).delete() # Xóa bảng phụ N-N
+        db.session.query(Question).delete()
+        db.session.query(Tag).delete()
+        db.session.query(User).delete()
+        db.session.commit()
+        
+        # Chạy hàm bơm data
+        seed_to_database()

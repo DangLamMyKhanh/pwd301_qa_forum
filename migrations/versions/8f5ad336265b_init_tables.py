@@ -1,8 +1,8 @@
-"""Khoi tao
+"""Init tables
 
-Revision ID: 6ce4c2c203dd
+Revision ID: 8f5ad336265b
 Revises: 
-Create Date: 2026-10-05 23:16:19.296637
+Create Date: 2026-10-10 13:22:17.628322
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '6ce4c2c203dd'
+revision = '8f5ad336265b'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -22,13 +22,13 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=True),
     sa.Column('ip_address', sa.String(length=50), nullable=False),
-    sa.Column('action', sa.String(length=255), nullable=False),
+    sa.Column('action', sa.Unicode(length=255), nullable=False),
     sa.Column('timestamp', sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('tags',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('name', sa.String(length=50), nullable=False),
+    sa.Column('name', sa.Unicode(length=50), nullable=False),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('name')
     )
@@ -44,8 +44,8 @@ def upgrade():
     )
     op.create_table('questions',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('title', sa.String(length=200), nullable=False),
-    sa.Column('content', sa.Text(), nullable=False),
+    sa.Column('title', sa.Unicode(length=200), nullable=False),
+    sa.Column('content', sa.UnicodeText(), nullable=False),
     sa.Column('views', sa.Integer(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('user_id', sa.Integer(), nullable=False),
@@ -54,7 +54,7 @@ def upgrade():
     )
     op.create_table('answers',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('content', sa.Text(), nullable=False),
+    sa.Column('content', sa.UnicodeText(), nullable=False),
     sa.Column('upvotes', sa.Integer(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('user_id', sa.Integer(), nullable=False),
