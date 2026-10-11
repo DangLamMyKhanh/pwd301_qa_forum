@@ -9,11 +9,19 @@ from src.models import db, User
 from src.extensions import bcrypt, login_manager
 from flask_migrate import Migrate 
 
+
+from flask_jwt_extended import JWTManager
+
+
+
 app = Flask(__name__, template_folder='src/templates', static_folder='src/static')
 
 load_dotenv()
 
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY') # Thêm dưới cái Secret Key cũ
+jwt = JWTManager(app) # Khởi tạo
 
 
 # ==========================================

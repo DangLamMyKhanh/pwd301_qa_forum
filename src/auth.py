@@ -6,6 +6,8 @@ from functools import wraps
 
 from src.forms import LoginForm, RegistrationForm, QuestionForm, AnswerForm
 
+from flask_jwt_extended import create_access_token
+
 
 # Khởi tạo Blueprint có tên là 'auth'
 auth_bp = Blueprint('auth', __name__)
@@ -89,9 +91,17 @@ def login():
 
         # Nếu có user và mật khẩu sau khi giải băm khớp nhau
         if user and bcrypt.check_password_hash(user.password_hash, password):
-            login_user(user) # Cấp session đăng nhập
+            # 1. Cấp session duyệt web (Cũ)
+            login_user(user) 
+            
+            # 2. TẠO CHÌA KHÓA JWT TOKEN (MỚI THÊM)
+            # Tạo 1 token có chứa ID của user, dùng để gọi API
+            access_token = create_access_token(identity=str(user.id))
+            
             flash('Đăng nhập thành công!', 'success')
-            return redirect(url_for('main.index'))
+            
+            # 3. Truyền cái Token này sang trang Chủ cho JS xài
+            return render_template('index.html', jwt_token=access_token)
         else:
             flash('Email hoặc mật khẩu không đúng!', 'danger')
             # TODO: Sau này chèn hàm Ghi Log (Sai mật khẩu) vào đây
