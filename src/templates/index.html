@@ -1,7 +1,5 @@
 {% extends "base.html" %}
-
 {% block title %}Trang chủ - Student Q&A Forum{% endblock %}
-
 {% block content %}
 <div class="container py-5">
     <div class="text-center py-5">
@@ -32,6 +30,108 @@
                 </a>
             </div>
         {% endif %}
+    </div>
+
+    <!-- PHẦN TUẦN 2 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold mb-0">Câu hỏi mới nhất </h2>
+        <a href="ask_question.html" class="btn btn-outline-primary">
+            <i class="fa-solid fa-plus me-1"></i>
+            Tạo câu hỏi
+        </a>
+    </div>
+    <!-- DANH SÁCH CÂU HỎI -->
+    <!-- CÂU HỎI 1 -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <!-- CỘT VOTE -->
+                <div class="col-3 col-md-2 text-center">
+                    <div class="mb-2">
+                        <strong>15</strong>
+                        <div class="text-secondary small">
+                            Votes
+                        </div>
+                    </div>
+
+                    <div>
+                        <strong>3</strong>
+                        <div class="text-secondary small">
+                            Answers
+                        </div>
+                    </div>
+                </div>
+                <div class="col-9 col-md-10">
+                    <h5>
+                        <a href="question_detail.html"
+                           class="text-decoration-none fw-bold">
+
+                            Làm thế nào để kết nối Flask với SQL Server?
+                        </a>
+                    </h5>
+                    <p class="text-secondary mb-2">
+                        Em đang xây dựng project Flask và gặp vấn đề
+                        khi kết nối với SQL Server bằng SQLAlchemy.
+                    </p>
+                    <div class="mb-2">
+                        <span class="badge bg-primary">Python</span>
+                        <span class="badge bg-secondary">Flask</span>
+                        <span class="badge bg-success">SQL Server</span>
+                    </div>
+
+                    <div class="text-secondary small">
+                        Đăng bởi Phong Nguyen Nhat Lam • 2 giờ trước
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CÂU HỎI 2 -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <!-- CỘT VOTE -->
+                <div class="col-3 col-md-2 text-center">
+                    <div class="mb-2">
+                        <strong>8</strong>
+                        <div class="text-secondary small">
+                            Votes
+                        </div>
+                    </div>
+
+                    <div>
+                        <strong>5</strong>
+                        <div class="text-secondary small">
+                            Answers
+                        </div>
+                    </div>
+                </div>
+                <div class="col-9 col-md-10">
+                    <h5>
+                        <a href="question_detail.html"
+                           class="text-decoration-none fw-bold">
+                            Cách sử dụng Bootstrap 5 trong Flask?
+                        </a>
+                    </h5>
+                    <p class="text-secondary mb-2">
+                        Em muốn sử dụng Bootstrap 5 trong project Flask
+                        nhưng chưa biết cách nhúng CDN và sử dụng các class responsive.
+                    </p>
+                    <div class="mb-2">
+                        <span class="badge bg-primary">Bootstrap</span>
+                        <span class="badge bg-secondary">HTML</span>
+                        <span class="badge bg-info text-dark">CSS</span>
+                    </div>
+
+                    <div class="text-secondary small">
+                        Đăng bởi Phong Nguyen Nhat Lam • 5 giờ trước
+                    </div>
+
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

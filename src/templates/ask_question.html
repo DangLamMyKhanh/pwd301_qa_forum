@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Đặt câu hỏi - Student Q&A Forum{% endblock %}
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-9">
+            <!-- TIÊU ĐỀ -->
+            <div class="mb-4">
+                <h2 class="fw-bold">
+                    Đặt câu hỏi mới
+                </h2>
+                <p class="text-secondary">
+                    Hãy mô tả câu hỏi của bạn rõ ràng để mọi người
+                    có thể hỗ trợ tốt hơn.
+                </p>
+            </div>
+            <!-- FORM -->
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <form>
+                        <!-- TIÊU ĐỀ -->
+                        <div class="mb-4">
+                            <label
+                                for="title"
+                                class="form-label fw-semibold"
+                            >
+                                Tiêu đề câu hỏi
+                            </label>
+                            <input
+                                type="text"
+                                id="title"
+                                class="form-control"
+                                placeholder="Ví dụ: Làm thế nào để kết nối Flask với SQL Server?"
+                            >
+                            <div class="form-text">
+                                Viết tiêu đề ngắn gọn và mô tả đúng vấn đề.
+                            </div>
+                        </div>
+                        <!-- NỘI DUNG -->
+                        <div class="mb-4">
+                            <label
+                                for="content"
+                                class="form-label fw-semibold"
+                            >
+                                Nội dung câu hỏi
+                            </label>
+                            <textarea
+                                id="content"
+                                class="form-control"
+                                rows="8"
+                                placeholder="Nhập nội dung chi tiết câu hỏi của bạn..."
+                            ></textarea>
+                        </div>
+                        <!-- TAG -->
+                        <div class="mb-4">
+                            <label
+                                for="tags"
+                                class="form-label fw-semibold"
+                            >
+                                Tag (Chủ đề)
+                            </label>
+                            <input
+                                type="text"
+                                id="tags"
+                                class="form-control"
+                                placeholder="Ví dụ: Python, Flask, SQL Server"
+                            >
+                            <div class="form-text">
+                                Nhập các chủ đề liên quan đến câu hỏi.
+                            </div>
+                        </div>
+                        <!-- BUTTON -->
+                        <button
+                            type="submit"
+                            class="btn btn-primary"
+                        >
+                            <i class="fa-solid fa-paper-plane me-1"></i>
+                            Đăng câu hỏi
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
