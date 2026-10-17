@@ -13,7 +13,7 @@ Gồm 4 form:
 # ---------------------------------------------------------------------------
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField, TextAreaField
-from wtforms.validators import DataRequired, Email, Length, EqualTo
+from wtforms.validators import DataRequired, Email, Length, EqualTo, Regexp
 
 
 # ---------------------------------------------------------------------------
@@ -25,6 +25,10 @@ class RegistrationForm(FlaskForm):
         validators=[
             DataRequired(message="Vui lòng nhập tên đăng nhập."),
             Length(min=3, max=20, message="Tên đăng nhập phải từ 3 đến 20 ký tự."),
+            Regexp(
+                r'^[a-zA-Z0-9_]+$',
+                message="Tên đăng nhập chỉ được chứa chữ cái, số và dấu gạch dưới.",
+            ),
         ],
     )
     email = StringField(
@@ -32,6 +36,7 @@ class RegistrationForm(FlaskForm):
         validators=[
             DataRequired(message="Vui lòng nhập email."),
             Email(message="Email không đúng định dạng."),
+            Length(max=100, message="Email không được vượt quá 100 ký tự."),
         ],
     )
     password = PasswordField(
@@ -60,6 +65,7 @@ class LoginForm(FlaskForm):
         validators=[
             DataRequired(message="Vui lòng nhập email."),
             Email(message="Email không đúng định dạng."),
+            Length(max=100, message="Email không được vượt quá 100 ký tự."),
         ],
     )
     password = PasswordField(
@@ -75,7 +81,10 @@ class LoginForm(FlaskForm):
 class QuestionForm(FlaskForm):
     title = StringField(
         "Tiêu đề",
-        validators=[DataRequired(message="Vui lòng nhập tiêu đề câu hỏi.")],
+        validators=[
+            DataRequired(message="Vui lòng nhập tiêu đề câu hỏi."),
+            Length(max=200, message="Tiêu đề không được vượt quá 200 ký tự."),
+        ],
     )
     content = TextAreaField(
         "Nội dung",
