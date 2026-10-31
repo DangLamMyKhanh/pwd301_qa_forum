@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% block title %}Nhật ký hệ thống & Quản trị - Student Q&A Forum{% endblock %}
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">
+                <i class="fa-solid fa-clipboard-list text-primary me-2"></i>Nhật ký hoạt động hệ thống (Audit Logs)
+            </h2>
+            <p class="text-secondary mb-0">
+                Ghi nhận các sự kiện xác thực, nỗ lực truy cập trái phép và hỗ trợ truy vết sự cố an ninh theo thời gian thực.
+            </p>
+        </div>
+
+        <!-- CÔNG CỤ LIVE MONITORING -->
+        <div class="d-flex align-items-center gap-3 bg-white p-2 px-3 rounded shadow-sm border">
+            <div class="form-check form-switch mb-0 d-flex align-items-center gap-2">
+                <input class="form-check-input mt-0" type="checkbox" id="liveToggle" checked style="cursor: pointer;">
+                <label class="form-check-label fw-semibold small d-flex align-items-center" for="liveToggle" id="liveStatus" style="cursor: pointer;">
+                    <span class="spinner-grow spinner-grow-sm text-success me-1" id="livePulse"></span>
+                    <span id="liveText" class="text-success">Live (3s)</span>
+                </label>
+            </div>
+            <div class="vr"></div>
+            <button id="refreshBtn" class="btn btn-outline-primary btn-sm">
+                <i class="fa-solid fa-rotate-right me-1" id="refreshIcon"></i> Làm mới
+            </button>
+        </div>
+    </div>
+
+    <!-- THỐNG KÊ NHANH -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 border-start border-primary border-4">
+                <div class="card-body">
+                    <span class="text-secondary small fw-semibold">Tổng số sự kiện</span>
+                    <h3 class="fw-bold mb-0 mt-1" id="stat-total">{{ total_logs if total_logs is defined else logs|length }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 border-start border-danger border-4">
+                <div class="card-body">
+                    <span class="text-danger small fw-semibold">Nỗ lực truy cập trái phép</span>
+                    <h3 class="fw-bold mb-0 mt-1" id="stat-auth-fail">{{ auth_fail_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 border-start border-warning border-4">
+                <div class="card-body">
+                    <span class="text-warning small fw-semibold">Cảnh báo CSRF & Spam</span>
+                    <h3 class="fw-bold mb-0 mt-1" id="stat-csrf-spam">{{ csrf_count + spam_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 border-start border-info border-4">
+                <div class="card-body">
+                    <span class="text-info small fw-semibold">Lỗi 403 & 404</span>
+                    <h3 class="fw-bold mb-0 mt-1" id="stat-error">{{ error_count }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BẢNG DANH SÁCH LOGS -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold mb-0">
+                Danh sách các sự kiện mới nhất
+                {% if pagination and pagination.pages > 1 %}
+                    <span class="badge bg-secondary fs-6 fw-normal ms-2">Trang {{ pagination.page }}/{{ pagination.pages }}</span>
+                {% endif %}
+            </h5>
+            <small class="text-muted" id="lastUpdated">Cập nhật lúc: Vừa xong</small>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col" style="width: 80px;"># ID</th>
+                            <th scope="col" style="width: 180px;">Thời gian</th>
+                            <th scope="col" style="width: 150px;">IP Address</th>
+                            <th scope="col" style="width: 160px;">Người dùng</th>
+                            <th scope="col">Chi tiết sự kiện</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logsTableBody" data-current-page="{{ pagination.page if pagination else 1 }}" data-last-id="{{ logs[0].id if logs else 0 }}">
+                        {% for log in logs %}
+                            <tr id="log-row-{{ log.id }}">
+                                <td class="fw-semibold text-secondary">#{{ log.id }}</td>
+                                <td class="small text-muted">
+                                    {{ log.timestamp.strftime('%d/%m/%Y %H:%M:%S') if log.timestamp else 'N/A' }}
+                                </td>
+                                <td>
+                                    <code>{{ log.ip_address }}</code>
+                                </td>
+                                <td>
+                                    {% if log.user_id and log.user_id in users_map %}
+                                        <a href="{{ url_for('auth.user_profile', user_id=log.user_id) }}" class="badge bg-light text-dark border text-decoration-none">
+                                            <i class="fa-solid fa-user me-1"></i>{{ users_map[log.user_id] }}
+                                        </a>
+                                    {% else %}
+                                        <span class="text-secondary small fst-italic">Khách (Chưa đăng nhập)</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if 'Nỗ lực truy cập trái phép' in log.action or 'thất bại' in log.action %}
+                                        <span class="badge bg-danger me-1"><i class="fa-solid fa-user-xmark me-1"></i>Unauthorized</span>
+                                    {% elif 'Sự kiện xác thực' in log.action %}
+                                        <span class="badge bg-success me-1"><i class="fa-solid fa-check me-1"></i>Auth Success</span>
+                                    {% elif 'CSRF' in log.action %}
+                                        <span class="badge bg-danger me-1">CSRF Alert</span>
+                                    {% elif 'Spam' in log.action %}
+                                        <span class="badge bg-warning text-dark me-1">Spam Alert</span>
+                                    {% elif '403' in log.action %}
+                                        <span class="badge bg-danger bg-opacity-75 me-1">403 Forbidden</span>
+                                    {% elif '404' in log.action %}
+                                        <span class="badge bg-secondary me-1">404 Not Found</span>
+                                    {% else %}
+                                        <span class="badge bg-info text-dark me-1">Notice</span>
+                                    {% endif %}
+                                    <span class="text-dark">{{ log.action }}</span>
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr id="empty-row">
+                                <td colspan="5" class="text-center py-5 text-muted">
+                                    <i class="fa-regular fa-circle-check fa-3x text-success mb-3 d-block"></i>
+                                    Chưa có sự kiện nào được ghi nhận. Hệ thống đang hoạt động an toàn!
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- THANH PHÂN TRANG LOGS (BOOTSTRAP 5) -->
+        {% if pagination and pagination.pages > 1 %}
+            <div class="card-footer bg-white py-3 border-top">
+                <nav aria-label="Logs navigation">
+                    <ul class="pagination justify-content-center mb-0">
+                        <!-- Nút Trước (Previous) -->
+                        <li class="page-item {{ 'disabled' if not pagination.has_prev else '' }}">
+                            <a class="page-link" href="{{ url_for('auth.admin_dashboard', page=pagination.prev_num) }}">
+                                <i class="fa-solid fa-chevron-left me-1"></i>Trước
+                            </a>
+                        </li>
+
+                        <!-- Các số trang -->
+                        {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                            {% if p %}
+                                <li class="page-item {{ 'active' if p == pagination.page else '' }}">
+                                    <a class="page-link" href="{{ url_for('auth.admin_dashboard', page=p) }}">
+                                        {{ p }}
+                                    </a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled"><span class="page-link">…</span></li>
+                            {% endif %}
+                        {% endfor %}
+
+                        <!-- Nút Sau (Next) -->
+                        <li class="page-item {{ 'disabled' if not pagination.has_next else '' }}">
+                            <a class="page-link" href="{{ url_for('auth.admin_dashboard', page=pagination.next_num) }}">
+                                Sau<i class="fa-solid fa-chevron-right ms-1"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/admin_logs.js') }}"></script>
+{% endblock %}
