@@ -1,8 +1,6 @@
-from flask_bcrypt import Bcrypt # cung cấp các hàm để hash mật khẩu, khi user đăng kí tài khoản thì password sẽ bị mã hóa trước khi đưa vào database
 from flask_login import LoginManager
 
-# Khởi tạo các công cụ bảo mật
-bcrypt = Bcrypt()
+# Khởi tạo LoginManager quản lý phiên đăng nhập
 login_manager = LoginManager()
 
 # Cấu hình LoginManager: Nếu chưa đăng nhập mà cố vào trang cấm, sẽ bị cho về đây

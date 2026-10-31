@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}Hồ sơ: {{ profile_user.username }} - Student Q&A Forum{% endblock %}
+{% block content %}
+<div class="container py-5">
+    <!-- THÔNG TIN TỔNG QUAN USER -->
+    <div class="card shadow-sm border-0 mb-4 overflow-hidden">
+        <div class="bg-primary py-4 px-4 text-white">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle bg-white text-primary d-flex align-items-center justify-content-center shadow-sm" style="width: 80px; height: 80px; font-size: 2.5rem;">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+                <div>
+                    <h2 class="fw-bold mb-1 d-flex align-items-center gap-2">
+                        {{ profile_user.username }}
+                        {% if profile_user.role == 'admin' %}
+                            <span class="badge bg-danger fs-6"><i class="fa-solid fa-shield-halved me-1"></i>Admin</span>
+                        {% elif profile_user.role == 'mod' or profile_user.role == 'moderator' %}
+                            <span class="badge bg-success fs-6"><i class="fa-solid fa-gavel me-1"></i>Moderator</span>
+                        {% else %}
+                            <span class="badge bg-info text-dark fs-6"><i class="fa-solid fa-graduation-cap me-1"></i>Student</span>
+                        {% endif %}
+                    </h2>
+                    <p class="mb-0 text-white-50">
+                        <i class="fa-solid fa-envelope me-1"></i> {{ profile_user.email }}
+                        {% if is_own_profile %}
+                            <span class="badge bg-light text-dark ms-2">Hồ sơ của bạn</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-body bg-light py-3 border-top">
+            <div class="row text-center g-3">
+                <div class="col-4 border-end">
+                    <span class="text-secondary small fw-semibold">Câu hỏi đã đặt</span>
+                    <h4 class="fw-bold text-primary mb-0 mt-1">{{ questions|length }}</h4>
+                </div>
+                <div class="col-4 border-end">
+                    <span class="text-secondary small fw-semibold">Câu trả lời đã viết</span>
+                    <h4 class="fw-bold text-success mb-0 mt-1">{{ answers|length }}</h4>
+                </div>
+                <div class="col-4">
+                    <span class="text-secondary small fw-semibold">Điểm uy tín (Votes nhận được)</span>
+                    <h4 class="fw-bold text-warning mb-0 mt-1">
+                        <i class="fa-solid fa-star me-1"></i>{{ total_votes }}
+                    </h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABS NỘI DUNG: CÂU HỎI & CÂU TRẢ LỜI -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white border-bottom-0 pt-3 px-4">
+            <ul class="nav nav-tabs card-header-tabs" id="profileTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active fw-semibold" id="questions-tab" data-bs-toggle="tab" data-bs-target="#questions-pane" type="button" role="tab">
+                        <i class="fa-solid fa-question-circle me-1"></i> Câu hỏi đã đặt ({{ questions|length }})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-semibold" id="answers-tab" data-bs-toggle="tab" data-bs-target="#answers-pane" type="button" role="tab">
+                        <i class="fa-solid fa-comment-dots me-1"></i> Câu trả lời đã gửi ({{ answers|length }})
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card-body p-4">
+            <div class="tab-content" id="profileTabsContent">
+                <!-- TAB 1: DANH SÁCH CÂU HỎI -->
+                <div class="tab-pane fade show active" id="questions-pane" role="tabpanel">
+                    {% for q in questions %}
+                        <div class="border-bottom pb-3 mb-3">
+                            <h5>
+                                <a href="{{ url_for('main.question_detail', question_id=q.id) }}" class="text-decoration-none fw-bold text-dark hover-primary">
+                                    {{ q.title }}
+                                </a>
+                            </h5>
+                            <p class="text-secondary mb-2 small text-truncate">
+                                {{ q.content | striptags }}
+                            </p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    {% for tag in q.tags %}
+                                        <a href="{{ url_for('main.index', tag=tag.name) }}" class="badge bg-primary text-decoration-none me-1">
+                                            {{ tag.name }}
+                                        </a>
+                                    {% endfor %}
+                                </div>
+                                <div class="text-muted small">
+                                    <span class="me-3"><i class="fa-regular fa-comment me-1"></i>{{ q.answers|length }} trả lời</span>
+                                    <span class="me-3"><i class="fa-regular fa-eye me-1"></i>{{ q.views or 0 }} lượt xem</span>
+                                    <span><i class="fa-regular fa-clock me-1"></i>{{ q.created_at.strftime('%d/%m/%Y') if q.created_at else '' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5 text-muted">
+                            <i class="fa-regular fa-folder-open fa-3x mb-3 d-block text-secondary"></i>
+                            <p class="mb-0">Thành viên này chưa đặt câu hỏi nào.</p>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- TAB 2: DANH SÁCH CÂU TRẢ LỜI -->
+                <div class="tab-pane fade" id="answers-pane" role="tabpanel">
+                    {% for a in answers %}
+                        <div class="border-bottom pb-3 mb-3">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <span class="badge bg-success bg-opacity-75 text-white">
+                                    <i class="fa-solid fa-caret-up me-1"></i>{{ a.upvotes }} votes
+                                </span>
+                                <span class="text-secondary small">Trả lời cho câu hỏi:</span>
+                                <strong>
+                                    <a href="{{ url_for('main.question_detail', question_id=a.question_id) }}" class="text-decoration-none text-dark">
+                                        {{ a.question.title if a.question else 'Câu hỏi' }}
+                                    </a>
+                                </strong>
+                            </div>
+                            <div class="bg-light p-3 rounded mb-2 fs-6 text-secondary">
+                                {{ a.content | safe }}
+                            </div>
+                            <div class="text-muted small text-end">
+                                <i class="fa-regular fa-clock me-1"></i>{{ a.created_at.strftime('%d/%m/%Y %H:%M') if a.created_at else '' }}
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5 text-muted">
+                            <i class="fa-regular fa-comment-dots fa-3x mb-3 d-block text-secondary"></i>
+                            <p class="mb-0">Thành viên này chưa tham gia trả lời câu hỏi nào.</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

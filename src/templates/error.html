@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} - Student Q&A Forum{% endblock %}
+{% block content %}
+<div class="container py-5 text-center">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-8 col-lg-6">
+            <div class="card shadow-sm border-0 py-5 px-4">
+                <div class="card-body">
+                    <div class="display-1 text-danger fw-bold mb-3">
+                        {% if code == 404 %}
+                            <i class="fa-solid fa-compass text-warning"></i>
+                        {% elif code == 403 %}
+                            <i class="fa-solid fa-shield-halved text-danger"></i>
+                        {% else %}
+                            <i class="fa-solid fa-triangle-exclamation text-danger"></i>
+                        {% endif %}
+                        <div class="fs-1">{{ code }}</div>
+                    </div>
+                    <h3 class="fw-bold mb-3">{{ title }}</h3>
+                    <p class="text-secondary mb-4">{{ message }}</p>
+                    <div class="d-flex justify-content-center gap-2">
+                        <a href="{{ url_for('main.index') }}" class="btn btn-primary px-4">
+                            <i class="fa-solid fa-house me-2"></i>Về trang chủ
+                        </a>
+                        {% if not current_user.is_authenticated and code == 403 %}
+                            <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary px-4">
+                                <i class="fa-solid fa-right-to-bracket me-2"></i>Đăng nhập
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -10,73 +10,67 @@
                     Đặt câu hỏi mới
                 </h2>
                 <p class="text-secondary">
-                    Hãy mô tả câu hỏi của bạn rõ ràng để mọi người
-                    có thể hỗ trợ tốt hơn.
+                    Hãy mô tả câu hỏi của bạn rõ ràng để mọi người có thể hỗ trợ tốt hơn.
                 </p>
             </div>
+
             <!-- FORM -->
             <div class="card shadow-sm">
                 <div class="card-body p-4">
-                    <form>
+                    <form method="POST" action="{{ url_for('main.ask_question') }}">
+                        {{ form.csrf_token }}
+
                         <!-- TIÊU ĐỀ -->
                         <div class="mb-4">
-                            <label
-                                for="title"
-                                class="form-label fw-semibold"
-                            >
-                                Tiêu đề câu hỏi
+                            <label for="title" class="form-label fw-semibold">
+                                {{ form.title.label.text }} <span class="text-danger">*</span>
                             </label>
-                            <input
-                                type="text"
-                                id="title"
-                                class="form-control"
-                                placeholder="Ví dụ: Làm thế nào để kết nối Flask với SQL Server?"
-                            >
+                            {{ form.title(class="form-control" + (" is-invalid" if form.title.errors else ""), id="title", placeholder="Ví dụ: Làm thế nào để kết nối Flask với SQL Server?") }}
                             <div class="form-text">
                                 Viết tiêu đề ngắn gọn và mô tả đúng vấn đề.
                             </div>
+                            {% for error in form.title.errors %}
+                                <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
                         </div>
+
                         <!-- NỘI DUNG -->
                         <div class="mb-4">
-                            <label
-                                for="content"
-                                class="form-label fw-semibold"
-                            >
-                                Nội dung câu hỏi
+                            <label for="content" class="form-label fw-semibold">
+                                {{ form.content.label.text }} <span class="text-danger">*</span>
                             </label>
-                            <textarea
-                                id="content"
-                                class="form-control"
-                                rows="8"
-                                placeholder="Nhập nội dung chi tiết câu hỏi của bạn..."
-                            ></textarea>
+                            {{ form.content(class="form-control" + (" is-invalid" if form.content.errors else ""), id="content", rows="8", placeholder="Nhập nội dung chi tiết câu hỏi của bạn...") }}
+                            <div class="form-text">
+                                Hỗ trợ các thẻ định dạng văn bản cơ bản (b, i, code, pre,...).
+                            </div>
+                            {% for error in form.content.errors %}
+                                <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
                         </div>
+
                         <!-- TAG -->
                         <div class="mb-4">
-                            <label
-                                for="tags"
-                                class="form-label fw-semibold"
-                            >
-                                Tag (Chủ đề)
+                            <label for="tags" class="form-label fw-semibold">
+                                {{ form.tags.label.text }} <span class="text-danger">*</span>
                             </label>
-                            <input
-                                type="text"
-                                id="tags"
-                                class="form-control"
-                                placeholder="Ví dụ: Python, Flask, SQL Server"
-                            >
+                            {{ form.tags(class="form-control" + (" is-invalid" if form.tags.errors else ""), id="tags", placeholder="Ví dụ: Python, Flask, SQL Server") }}
                             <div class="form-text">
-                                Nhập các chủ đề liên quan đến câu hỏi.
+                                Nhập các chủ đề liên quan đến câu hỏi, cách nhau bằng dấu phẩy.
                             </div>
+                            {% for error in form.tags.errors %}
+                                <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
                         </div>
+
                         <!-- BUTTON -->
-                        <button
-                            type="submit"
-                            class="btn btn-primary"
-                        >
-                            <i class="fa-solid fa-paper-plane me-1"></i>
-                            Đăng câu hỏi
-                        </button>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">
+                                <i class="fa-solid fa-arrow-left me-1"></i> Quay lại
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fa-solid fa-paper-plane me-1"></i> Đăng câu hỏi
+                            </button>
+                        </div>
                     </form>
                 </div>
             </div>

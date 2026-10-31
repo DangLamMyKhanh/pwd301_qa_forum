@@ -2,7 +2,7 @@
 {% block title %}Trang chủ - Student Q&A Forum{% endblock %}
 {% block content %}
 <div class="container py-5">
-    <div class="text-center py-5">
+    <div class="text-center py-4">
         <h1 class="fw-bold display-5">Student Q&A Forum</h1>
         <p class="text-secondary lead mt-3">
             Nơi sinh viên đặt câu hỏi, chia sẻ kiến thức và hỗ trợ nhau trong học tập.
@@ -13,8 +13,11 @@
                 <i class="fa-solid fa-circle-check me-2"></i> Xin chào, <strong>{{ current_user.username }}</strong>! Bạn đã đăng nhập thành công.
             </div>
             <div class="mt-4">
-                <a href="#" class="btn btn-primary btn-lg px-4 me-2">
+                <a href="#questions-section" class="btn btn-primary btn-lg px-4 me-2">
                     <i class="fa-solid fa-list me-2"></i>Xem câu hỏi
+                </a>
+                <a href="{{ url_for('auth.profile') }}" class="btn btn-outline-primary btn-lg px-4 me-2">
+                    <i class="fa-solid fa-id-card me-2"></i>Hồ sơ của tôi
                 </a>
                 <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger btn-lg px-4">
                     <i class="fa-solid fa-right-from-bracket me-2"></i>Đăng xuất
@@ -32,106 +35,190 @@
         {% endif %}
     </div>
 
-    <!-- PHẦN TUẦN 2 -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold mb-0">Câu hỏi mới nhất </h2>
-        <a href="ask_question.html" class="btn btn-outline-primary">
-            <i class="fa-solid fa-plus me-1"></i>
-            Tạo câu hỏi
-        </a>
-    </div>
-    <!-- DANH SÁCH CÂU HỎI -->
-    <!-- CÂU HỎI 1 -->
-    <div class="card shadow-sm mb-3">
-        <div class="card-body">
-            <div class="row align-items-center">
-                <!-- CỘT VOTE -->
-                <div class="col-3 col-md-2 text-center">
-                    <div class="mb-2">
-                        <strong>15</strong>
-                        <div class="text-secondary small">
-                            Votes
-                        </div>
-                    </div>
+    <!-- DANH SÁCH CHỦ ĐỀ / TAGS PHỔ BIẾN -->
+    {% if all_tags %}
+        <div class="mb-4 text-center">
+            <span class="text-secondary me-2 small fw-semibold"><i class="fa-solid fa-tags me-1"></i>Chủ đề:</span>
+            <a href="{{ url_for('main.index') }}" class="badge {{ 'bg-dark' if not selected_tag else 'bg-secondary' }} text-decoration-none me-1">
+                Tất cả
+            </a>
+            {% for t in all_tags %}
+                <a href="{{ url_for('main.index', tag=t.name) }}" class="badge {{ 'bg-primary' if selected_tag == t.name else 'bg-light text-dark border' }} text-decoration-none me-1">
+                    {{ t.name }}
+                </a>
+            {% endfor %}
+        </div>
+    {% endif %}
 
-                    <div>
-                        <strong>3</strong>
-                        <div class="text-secondary small">
-                            Answers
-                        </div>
-                    </div>
+    <!-- PHẦN CÂU HỎI -->
+    <div id="questions-section" class="pt-3">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+            <div>
+                <h2 class="fw-bold mb-0">
+                    {% if selected_tag %}
+                        Câu hỏi về #{{ selected_tag }}
+                    {% elif search_query %}
+                        Kết quả tìm kiếm
+                    {% elif sort_by == 'votes' %}
+                        Câu hỏi nhiều bình chọn nhất
+                    {% else %}
+                        Câu hỏi mới nhất
+                    {% endif %}
+                </h2>
+                <small class="text-secondary">
+                    Tổng cộng {{ pagination.total if pagination else questions|length }} câu hỏi 
+                    {% if pagination and pagination.pages > 1 %}
+                        (Trang {{ pagination.page }}/{{ pagination.pages }})
+                    {% endif %}
+                </small>
+            </div>
+            
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <!-- NÚT SẮP XẾP (SORT BY NEWEST / VOTES - RUBRIC TOPIC 5) -->
+                <div class="btn-group btn-group-sm" role="group" aria-label="Sort questions">
+                    <a href="{{ url_for('main.index', sort='newest', q=search_query, tag=selected_tag) }}" 
+                       class="btn {{ 'btn-primary' if sort_by != 'votes' else 'btn-outline-primary' }}">
+                        <i class="fa-solid fa-clock me-1"></i>Mới nhất
+                    </a>
+                    <a href="{{ url_for('main.index', sort='votes', q=search_query, tag=selected_tag) }}" 
+                       class="btn {{ 'btn-primary' if sort_by == 'votes' else 'btn-outline-primary' }}">
+                        <i class="fa-solid fa-fire me-1"></i>Nhiều vote nhất
+                    </a>
                 </div>
-                <div class="col-9 col-md-10">
-                    <h5>
-                        <a href="question_detail.html"
-                           class="text-decoration-none fw-bold">
 
-                            Làm thế nào để kết nối Flask với SQL Server?
-                        </a>
-                    </h5>
-                    <p class="text-secondary mb-2">
-                        Em đang xây dựng project Flask và gặp vấn đề
-                        khi kết nối với SQL Server bằng SQLAlchemy.
-                    </p>
-                    <div class="mb-2">
-                        <span class="badge bg-primary">Python</span>
-                        <span class="badge bg-secondary">Flask</span>
-                        <span class="badge bg-success">SQL Server</span>
-                    </div>
-
-                    <div class="text-secondary small">
-                        Đăng bởi Phong Nguyen Nhat Lam • 2 giờ trước
-                    </div>
-
-                </div>
+                <a href="{{ url_for('main.ask_question') }}" class="btn btn-outline-primary btn-sm">
+                    <i class="fa-solid fa-plus me-1"></i>Tạo câu hỏi
+                </a>
             </div>
         </div>
-    </div>
 
-    <!-- CÂU HỎI 2 -->
-    <div class="card shadow-sm mb-3">
-        <div class="card-body">
-            <div class="row align-items-center">
-                <!-- CỘT VOTE -->
-                <div class="col-3 col-md-2 text-center">
-                    <div class="mb-2">
-                        <strong>8</strong>
-                        <div class="text-secondary small">
-                            Votes
+        <!-- BỘ LỌC ĐANG ÁP DỤNG -->
+        {% if selected_tag or search_query %}
+            <div class="mb-3 d-flex align-items-center gap-2">
+                <span class="text-secondary small">Đang lọc theo:</span>
+                {% if search_query %}
+                    <span class="badge bg-light text-dark border">Từ khóa: "{{ search_query }}"</span>
+                {% endif %}
+                {% if selected_tag %}
+                    <span class="badge bg-primary">Tag: {{ selected_tag }}</span>
+                {% endif %}
+                <a href="{{ url_for('main.index') }}" class="btn btn-sm btn-outline-secondary py-0">
+                    <i class="fa-solid fa-xmark me-1"></i>Xóa bộ lọc
+                </a>
+            </div>
+        {% endif %}
+
+        <!-- DANH SÁCH CÂU HỎI TỪ DATABASE -->
+        {% for question in questions %}
+            <div class="card shadow-sm mb-3">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <!-- CỘT THỐNG KÊ: VOTE / ANSWERS / VIEWS -->
+                        <div class="col-3 col-md-2 text-center border-end">
+                            <div class="mb-2">
+                                <strong>{{ question.answers | sum(attribute='upvotes') if question.answers else 0 }}</strong>
+                                <div class="text-secondary small">
+                                    Votes
+                                </div>
+                            </div>
+
+                            <div class="mb-2">
+                                <strong>{{ question.answers|length }}</strong>
+                                <div class="text-secondary small">
+                                    Answers
+                                </div>
+                            </div>
+
+                            <div>
+                                <strong class="text-muted">{{ question.views or 0 }}</strong>
+                                <div class="text-secondary small">
+                                    Views
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- CỘT THÔNG TIN CÂU HỎI -->
+                        <div class="col-9 col-md-10">
+                            <h5>
+                                <a href="{{ url_for('main.question_detail', question_id=question.id) }}"
+                                   class="text-decoration-none fw-bold text-dark">
+                                    {{ question.title }}
+                                </a>
+                            </h5>
+                            <p class="text-secondary mb-2" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                                {{ question.content | striptags }}
+                            </p>
+                            <div class="mb-2">
+                                {% for tag in question.tags %}
+                                    <a href="{{ url_for('main.index', tag=tag.name) }}" class="badge bg-primary text-decoration-none me-1">
+                                        {{ tag.name }}
+                                    </a>
+                                {% endfor %}
+                            </div>
+
+                            <div class="text-secondary small">
+                                Đăng bởi
+                                {% if question.author %}
+                                    <a href="{{ url_for('auth.user_profile', user_id=question.author.id) }}" class="fw-semibold text-dark text-decoration-none text-primary-hover">
+                                        <i class="fa-solid fa-circle-user me-1"></i>{{ question.author.username }}
+                                    </a>
+                                {% else %}
+                                    <span class="text-dark">Ẩn danh</span>
+                                {% endif %}
+                                {% if question.created_at %}
+                                    • {{ question.created_at.strftime('%d/%m/%Y %H:%M') }}
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
-
-                    <div>
-                        <strong>5</strong>
-                        <div class="text-secondary small">
-                            Answers
-                        </div>
-                    </div>
-                </div>
-                <div class="col-9 col-md-10">
-                    <h5>
-                        <a href="question_detail.html"
-                           class="text-decoration-none fw-bold">
-                            Cách sử dụng Bootstrap 5 trong Flask?
-                        </a>
-                    </h5>
-                    <p class="text-secondary mb-2">
-                        Em muốn sử dụng Bootstrap 5 trong project Flask
-                        nhưng chưa biết cách nhúng CDN và sử dụng các class responsive.
-                    </p>
-                    <div class="mb-2">
-                        <span class="badge bg-primary">Bootstrap</span>
-                        <span class="badge bg-secondary">HTML</span>
-                        <span class="badge bg-info text-dark">CSS</span>
-                    </div>
-
-                    <div class="text-secondary small">
-                        Đăng bởi Phong Nguyen Nhat Lam • 5 giờ trước
-                    </div>
-
                 </div>
             </div>
-        </div>
+        {% else %}
+            <div class="card shadow-sm text-center py-5">
+                <div class="card-body">
+                    <i class="fa-regular fa-folder-open fa-3x text-secondary mb-3"></i>
+                    <h5 class="text-secondary">Chưa có câu hỏi nào</h5>
+                    <p class="text-muted">Không tìm thấy câu hỏi phù hợp. Hãy thử đặt câu hỏi mới hoặc chạy lệnh seed dữ liệu!</p>
+                    <a href="{{ url_for('main.ask_question') }}" class="btn btn-primary mt-2">
+                        <i class="fa-solid fa-plus me-1"></i> Tạo câu hỏi ngay
+                    </a>
+                </div>
+            </div>
+        {% endfor %}
+
+        <!-- THANH PHÂN TRANG (BOOTSTRAP 5) -->
+        {% if pagination and pagination.pages > 1 %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    <!-- Nút Trước (Previous) -->
+                    <li class="page-item {{ 'disabled' if not pagination.has_prev else '' }}">
+                        <a class="page-link" href="{{ url_for('main.index', page=pagination.prev_num, q=search_query, tag=selected_tag, sort=sort_by) }}">
+                            <i class="fa-solid fa-chevron-left me-1"></i>Trước
+                        </a>
+                    </li>
+
+                    <!-- Các số trang -->
+                    {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if p %}
+                            <li class="page-item {{ 'active' if p == pagination.page else '' }}">
+                                <a class="page-link" href="{{ url_for('main.index', page=p, q=search_query, tag=selected_tag, sort=sort_by) }}">
+                                    {{ p }}
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">…</span></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    <!-- Nút Sau (Next) -->
+                    <li class="page-item {{ 'disabled' if not pagination.has_next else '' }}">
+                        <a class="page-link" href="{{ url_for('main.index', page=pagination.next_num, q=search_query, tag=selected_tag, sort=sort_by) }}">
+                            Sau<i class="fa-solid fa-chevron-right ms-1"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
