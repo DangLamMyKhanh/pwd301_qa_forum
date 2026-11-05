@@ -8,6 +8,7 @@ File này tích hợp trực tiếp với Model và Database.
 Khi chạy sẽ tạo dữ liệu mẫu và lưu vào DB thật.
 """
 
+from datetime import datetime, timedelta
 import random
 from faker import Faker
 
@@ -97,13 +98,16 @@ def create_tags():
 
 
 def create_questions(users, tags):
-    """Tạo 30 câu hỏi. Mỗi câu có tác giả là 1 User ngẫu nhiên và gắn 1-2 tag ngẫu nhiên."""
+    """Tạo 30 câu hỏi với thời gian lùi dần (cách nhau vài phút) để tránh trùng created_at gây lỗi phân trang.
+    Mỗi câu có tác giả là 1 User ngẫu nhiên và gắn 1-2 tag ngẫu nhiên."""
     questions = []
-    for _ in range(NUM_QUESTIONS):
+    base_time = datetime.utcnow()
+    for i in range(NUM_QUESTIONS):
         q = Question(
             title=fake.sentence(),
             content=fake.paragraph(),
             user_id=random.choice(users).id,
+            created_at=base_time - timedelta(minutes=i * 5),
         )
         q.tags = random.sample(tags, k=random.randint(1, 2))
         db.session.add(q)
@@ -116,11 +120,13 @@ def create_answers(users, questions):
     """Tạo 60 câu trả lời. Mỗi câu thuộc về 1 User ngẫu nhiên và 1 Câu hỏi ngẫu nhiên."""
     answers = []
     for _ in range(NUM_ANSWERS):
+        question = random.choice(questions)
         a = Answer(
             content=fake.paragraph(),
             user_id=random.choice(users).id,
-            question_id=random.choice(questions).id,
-            upvotes=random.randint(0, 25)
+            question_id=question.id,
+            upvotes=random.randint(0, 25),
+            created_at=question.created_at + timedelta(minutes=random.randint(1, 4))
         )
         db.session.add(a)
         answers.append(a)
@@ -148,7 +154,7 @@ if __name__ == "__main__":
         print(f"\n=== {len(questions)} CAU HOI ===")
         for i, q in enumerate(questions, start=1):
             tag_names = ', '.join(t.name for t in q.tags)
-            print(f"[{i}] {q.title}  (tac gia: {q.author.username}, tag: {tag_names})")
+            print(f"[{i}] {q.title}  (tac gia: {q.author.username}, tag: {tag_names}, created_at: {q.created_at})")
 
         print(f"\n=== {len(answers)} CAU TRA LOI ===")
         for a in answers[:5]:
