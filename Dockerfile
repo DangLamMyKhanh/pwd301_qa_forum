@@ -6,8 +6,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     FLASK_APP=app.py \
     FLASK_RUN_HOST=0.0.0.0 \
-    FLASK_RUN_PORT=5000
-
+    FLASK_RUN_PORT=5000 \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    PYTHONIOENCODING=utf-8
 # 2. Thiết lập thư mục làm việc bên trong container
 WORKDIR /app
 

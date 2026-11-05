@@ -4,6 +4,7 @@ from flask_wtf.csrf import CSRFProtect, CSRFError
 from flask_migrate import Migrate
 from flask_login import current_user
 from flask_jwt_extended import JWTManager
+from datetime import timedelta
 
 from config import Config
 from src.models import db, User, SecurityAuditLog
@@ -93,6 +94,14 @@ def forbidden_access(error):
         message="Bạn không có quyền (vai trò admin/mod) để truy cập vào tài nguyên này."
     ), 403
 
+#Filter chuyển giờ UTC sang giờ Việt Nam (+7)
+@app.template_filter('vn_time')
+def vn_time_filter(dt, fmt='%d/%m/%Y %H:%M'):
+    if not dt:
+        return ''
+    # Cộng thêm 7 tiếng vào giờ UTC
+    local_time = dt + timedelta(hours=7)
+    return local_time.strftime(fmt)
 
 if __name__ == "__main__":
     host = os.getenv('FLASK_RUN_HOST', '0.0.0.0')

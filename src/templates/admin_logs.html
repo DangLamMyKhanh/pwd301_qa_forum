@@ -92,7 +92,7 @@
                             <tr id="log-row-{{ log.id }}">
                                 <td class="fw-semibold text-secondary">#{{ log.id }}</td>
                                 <td class="small text-muted">
-                                    {{ log.timestamp.strftime('%d/%m/%Y %H:%M:%S') if log.timestamp else 'N/A' }}
+                                    {{ log.timestamp | vn_time('%d/%m/%Y %H:%M:%S') }}
                                 </td>
                                 <td>
                                     <code>{{ log.ip_address }}</code>

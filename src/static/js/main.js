@@ -109,9 +109,40 @@ function initVoteButtons() {
     });
 }
 
+
+// 4. Cảnh báo khi người dùng đang nhập dở câu hỏi mà rời trang
+function initBeforeUnloadWarning() {
+    const askForm = document.querySelector('form[action*="ask"]');
+    if (!askForm) return;
+
+    let isSubmitting = false;
+
+    // Khi người dùng bấm Đăng câu hỏi (submit) thì không cảnh báo
+    askForm.addEventListener('submit', () => {
+        isSubmitting = true;
+    });
+
+    // Bắt sự kiện khi người dùng tắt tab, reload hoặc bấm rời trang
+    window.addEventListener('beforeunload', (e) => {
+        if (isSubmitting) return;
+
+        const title = document.getElementById('title')?.value.trim();
+        const content = document.getElementById('content')?.value.trim();
+
+        // Nếu đã gõ nội dung vào ô tiêu đề hoặc nội dung
+        if (title || content) {
+            e.preventDefault();
+            e.returnValue = ''; // Bắt buộc với Chrome/Edge/Firefox để kích hoạt hộp thoại xác nhận
+            return '';
+        }
+    });
+}
+
+
 // 4. Kích hoạt khi trang web tải xong DOM
 document.addEventListener('DOMContentLoaded', () => {
     console.log("File main.js đã tải thành công và sẵn sàng hoạt động!");
     checkApiHealth();
     initVoteButtons();
+    initBeforeUnloadWarning();
 });
