@@ -8,12 +8,20 @@ Gồm 4 form:
     - AnswerForm       : trả lời câu hỏi
 """
 
-# ---------------------------------------------------------------------------
-# Task 1.1: Cấu hình thư viện
-# ---------------------------------------------------------------------------
+import re
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField, TextAreaField
 from wtforms.validators import DataRequired, Email, Length, EqualTo, Regexp
+
+# ---------------------------------------------------------------------------
+# Cấu hình bộ lọc Email (Custom Email Filters)
+# ---------------------------------------------------------------------------
+# Hướng 1: Khóa đăng ký bằng mail sinh viên/giáo dục (@*.edu.vn hoặc @*.edu)
+# Phù hợp đối tượng diễn đàn học thuật chỉ dành cho sinh viên
+STUDENT_EMAIL_REGEX = r'^[a-zA-Z0-9._%+-]+@([a-zA-Z0-9-]+\.)*(edu\.vn|edu)$'
+
+# Hướng 2: Bộ lọc regex chuẩn mở cho mọi loại email hợp lệ (Gmail, Outlook, Edu, v.v.)
+GENERAL_EMAIL_REGEX = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
 
 
 # ---------------------------------------------------------------------------
@@ -22,6 +30,7 @@ from wtforms.validators import DataRequired, Email, Length, EqualTo, Regexp
 class RegistrationForm(FlaskForm):
     username = StringField(
         "Tên đăng nhập",
+        filters=[lambda s: s.strip() if isinstance(s, str) else s],
         validators=[
             DataRequired(message="Vui lòng nhập tên đăng nhập."),
             Length(min=3, max=20, message="Tên đăng nhập phải từ 3 đến 20 ký tự."),
@@ -33,10 +42,15 @@ class RegistrationForm(FlaskForm):
     )
     email = StringField(
         "Email",
+        filters=[lambda s: s.strip() if isinstance(s, str) else s],
         validators=[
             DataRequired(message="Vui lòng nhập email."),
-            Email(message="Email không đúng định dạng."),
             Length(max=100, message="Email không được vượt quá 100 ký tự."),
+            Regexp(
+                STUDENT_EMAIL_REGEX,
+                flags=re.IGNORECASE,
+                message="Email đăng ký phải là email sinh viên (có đuôi @*.edu.vn hoặc @*.edu, ví dụ: sv@fpt.edu.vn).",
+            ),
         ],
     )
     password = PasswordField(
@@ -62,10 +76,15 @@ class RegistrationForm(FlaskForm):
 class LoginForm(FlaskForm):
     email = StringField(
         "Email",
+        filters=[lambda s: s.strip() if isinstance(s, str) else s],
         validators=[
             DataRequired(message="Vui lòng nhập email."),
-            Email(message="Email không đúng định dạng."),
             Length(max=100, message="Email không được vượt quá 100 ký tự."),
+            Regexp(
+                GENERAL_EMAIL_REGEX,
+                flags=re.IGNORECASE,
+                message="Email không đúng định dạng.",
+            ),
         ],
     )
     password = PasswordField(
