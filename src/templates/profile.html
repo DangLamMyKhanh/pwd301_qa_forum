@@ -92,7 +92,7 @@
                                 <div class="text-muted small">
                                     <span class="me-3"><i class="fa-regular fa-comment me-1"></i>{{ q.answers|length }} trả lời</span>
                                     <span class="me-3"><i class="fa-regular fa-eye me-1"></i>{{ q.views or 0 }} lượt xem</span>
-                                    <span><i class="fa-regular fa-clock me-1"></i>{{ q.created_at.strftime('%d/%m/%Y') if q.created_at else '' }}</span>
+                                    <span><i class="fa-regular fa-clock me-1"></i>{{ q.created_at | vn_time('%d/%m/%Y') }}</span>
                                 </div>
                             </div>
                         </div>
@@ -123,7 +123,7 @@
                                 {{ a.content | safe }}
                             </div>
                             <div class="text-muted small text-end">
-                                <i class="fa-regular fa-clock me-1"></i>{{ a.created_at.strftime('%d/%m/%Y %H:%M') if a.created_at else '' }}
+                                <i class="fa-regular fa-clock me-1"></i>{{ a.created_at | vn_time }}
                             </div>
                         </div>
                     {% else %}

@@ -166,7 +166,7 @@
                                     <span class="text-dark">Ẩn danh</span>
                                 {% endif %}
                                 {% if question.created_at %}
-                                    • {{ question.created_at.strftime('%d/%m/%Y %H:%M') }}
+                                    • {{ question.created_at | vn_time }}
                                 {% endif %}
                             </div>
                         </div>
