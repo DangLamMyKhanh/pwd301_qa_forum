@@ -20,12 +20,15 @@
                             <span class="badge bg-info text-dark fs-6"><i class="fa-solid fa-graduation-cap me-1"></i>Student</span>
                         {% endif %}
                     </h2>
-                    <p class="mb-0 text-white-50">
-                        <i class="fa-solid fa-envelope me-1"></i> {{ profile_user.email }}
-                        {% if is_own_profile %}
-                            <span class="badge bg-light text-dark ms-2">Hồ sơ của bạn</span>
-                        {% endif %}
-                    </p>
+                    {% if is_own_profile %}
+                        <p class="mb-0 text-white-50">
+                            <i class="fa-solid fa-envelope me-1"></i>
+                            {{ profile_user.email }}
+                            <span class="badge bg-light text-dark ms-2">
+                                Hồ sơ của bạn
+                            </span>
+                        </p>
+                    {% endif %}
                 </div>
             </div>
         </div>
