@@ -176,9 +176,11 @@ Hệ thống đã nạp sẵn 3 nhóm tài khoản tương ứng với 3 vai tr�
 
 ## 7. Chạy kiểm thử tự động (Unit Tests)
 
-Dự án tích hợp sẵn bộ kiểm thử đơn vị với 17 test cases bao phủ toàn diện Models, Routes, RBAC, IDOR và REST API:
+Dự án tích hợp sẵn bộ kiểm thử đơn vị với 17 test cases bao phủ toàn diện Models, Routes, RBAC, IDOR và REST API bằng **pytest** (theo chuẩn Rubric Tiêu chí 9):
 
 ```powershell
-python -m unittest discover tests
+pytest
 ```
-Kết quả kỳ vọng: **17/17 tests OK (100% Passed)**.
+*(Hoặc chạy qua module built-in: `python -m unittest discover tests`)*
+
+Kết quả kỳ vọng: **17/17 passed (100% Passed)**.
