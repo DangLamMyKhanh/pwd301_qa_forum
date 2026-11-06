@@ -12,5 +12,5 @@ __pycache__/
 *.pyc
 .pytest_cache/
 
-# BẢO MẬT: TUYỆT ĐỐI KHÔNG PUSH FILE NÀY LÊN (Chứa Secret Key, Pass DB)
+# BẢO MẬT: KHÔNG PUSH FILE NÀY LÊN (Chứa Secret Key, Pass DB)
 .env

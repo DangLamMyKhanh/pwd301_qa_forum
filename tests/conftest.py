@@ -13,3 +13,4 @@ def app_ctx():
     """Pytest fixture cung cấp Application Context"""
     with app.app_context():
         yield
+

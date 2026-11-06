@@ -1,5 +1,5 @@
 import os
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, jsonify
 from flask_wtf.csrf import CSRFProtect, CSRFError
 from flask_migrate import Migrate
 from flask_login import current_user
@@ -57,12 +57,14 @@ def log_security_event(action):
 
 
 # ==========================================
-# XỬ LÝ LỖI TOÀN CỤC & GHI LOG BẢO MẬT
+# XỬ LÝ LỖI TOÀN CỤC & GHI LOG BẢO MẬT (ACCURATE STATUS CODES: 400, 401, 403, 404, 500)
 # ==========================================
 @app.errorhandler(CSRFError)
 def handle_csrf_error(error):
     # 1. Ghi log cảnh báo tấn công / lỗi CSRF
     log_security_event(f"CSRF Attack/Error: {error.description} (URL: {request.path})")
+    if request.path.startswith('/api/') or request.is_json:
+        return jsonify({"status": "error", "message": f"CSRF Error: {error.description}"}), 400
     return render_template(
         'error.html',
         code=400,
@@ -71,10 +73,59 @@ def handle_csrf_error(error):
     ), 400
 
 
+@app.errorhandler(400)
+def bad_request(error):
+    log_security_event(f"400 Bad Request: {request.path}")
+    if request.path.startswith('/api/') or request.is_json:
+        return jsonify({"status": "error", "message": "Yêu cầu không hợp lệ (Bad Request)"}), 400
+    return render_template(
+        'error.html',
+        code=400,
+        title="Yêu cầu không hợp lệ",
+        message="Dữ liệu gửi lên không hợp lệ hoặc thiếu thông tin bắt buộc."
+    ), 400
+
+
+@app.errorhandler(401)
+def unauthorized_access(error):
+    log_security_event(f"401 Unauthorized: {request.path}")
+    if request.path.startswith('/api/') or request.is_json:
+        return jsonify({"status": "error", "message": "Yêu cầu xác thực tài khoản hoặc JWT Token (Unauthorized)"}), 401
+    return render_template(
+        'error.html',
+        code=401,
+        title="Chưa xác thực",
+        message="Vui lòng đăng nhập để tiếp tục truy cập."
+    ), 401
+
+
+@app.errorhandler(403)
+def forbidden_access(error):
+    # 3. Ghi log khi cố tình truy cập trái phép không có quyền
+    log_security_event(f"403 Forbidden: Cố tình truy cập trái phép vào {request.path}")
+    if request.path.startswith('/api/') or request.is_json:
+        return jsonify({"status": "error", "message": "Bạn không có quyền truy cập tài nguyên này (Forbidden)"}), 403
+    
+    # Phân loại thông báo hiển thị cho người dùng
+    if request.path in ['/admin', '/admin-only']:
+        msg = "Khu vực này chỉ dành riêng cho Quản trị viên (Admin). Tài khoản của bạn không có quyền truy cập."
+    else:
+        msg = "Bạn không có đủ quyền hạn để thực hiện thao tác trên tài nguyên này."
+
+    return render_template(
+        'error.html',
+        code=403,
+        title="Không có quyền truy cập",
+        message=msg
+    ), 403
+
+
 @app.errorhandler(404)
 def not_found(error):
     # 2. Ghi log khi quét / truy cập đường dẫn không tồn tại
     log_security_event(f"404 Not Found: {request.path}")
+    if request.path.startswith('/api/') or request.is_json:
+        return jsonify({"status": "error", "message": "Không tìm thấy tài nguyên yêu cầu (Not Found)"}), 404
     return render_template(
         'error.html',
         code=404,
@@ -83,16 +134,19 @@ def not_found(error):
     ), 404
 
 
-@app.errorhandler(403)
-def forbidden_access(error):
-    # 3. Ghi log khi cố tình truy cập trái phép không có quyền
-    log_security_event(f"403 Forbidden: Cố tình truy cập trái phép vào {request.path}")
+@app.errorhandler(500)
+def internal_server_error(error):
+    # 4. Ghi log lỗi máy chủ nội bộ & Rollback session tránh nghẽn DB
+    db.session.rollback()
+    log_security_event(f"500 Internal Server Error tại {request.path}: {str(error)}")
+    if request.path.startswith('/api/') or request.is_json:
+        return jsonify({"status": "error", "message": "Đã xảy ra lỗi máy chủ nội bộ (Internal Server Error)"}), 500
     return render_template(
         'error.html',
-        code=403,
-        title="Không có quyền truy cập",
-        message="Bạn không có quyền (vai trò admin/mod) để truy cập vào tài nguyên này."
-    ), 403
+        code=500,
+        title="Lỗi máy chủ nội bộ",
+        message="Hệ thống gặp sự cố không mong muốn. Đội ngũ kỹ thuật đã được thông báo để khắc phục."
+    ), 500
 
 #Filter chuyển giờ UTC sang giờ Việt Nam (+7)
 @app.template_filter('vn_time')

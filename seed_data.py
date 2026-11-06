@@ -143,6 +143,27 @@ if __name__ == "__main__":
         tags = create_tags()
         questions = create_questions(users, tags)
         answers = create_answers(users, questions)
+        db.session.flush()
+
+        # Đánh dấu Best Answer mẫu cho 10 câu hỏi đầu tiên
+        for q in questions[:10]:
+            if q.answers:
+                best_ans = q.answers[0]
+                best_ans.is_best = True
+
+        # Khóa và ẩn thử nghiệm 1-2 câu hỏi để test tính năng Admin / Mod
+        if len(questions) > 1:
+            questions[1].is_locked = True
+        if len(questions) > 2:
+            questions[2].is_hidden = True
+
+        # Tính toán điểm Reputation khởi đầu dựa trên vote và best answers
+        for u in users:
+            q_votes = sum((q.upvotes or 0) * 10 for q in u.questions if (q.upvotes or 0) > 0)
+            a_votes = sum((a.upvotes or 0) * 10 for a in u.answers if (a.upvotes or 0) > 0)
+            best_points = sum(15 for a in u.answers if a.is_best)
+            u.reputation = q_votes + a_votes + best_points
+
         db.session.commit()
 
         print(f"=== {len(users)} USER (Admin: admin@student.edu.vn | Mod: moderator@student.edu.vn | pass: {DEFAULT_PASSWORD}) ===")

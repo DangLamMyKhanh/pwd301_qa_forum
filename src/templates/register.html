@@ -22,13 +22,14 @@
 
                         <!-- Username -->
                         <div class="mb-3">
-                            <label class="form-label" for="username">Tên hiển thị</label>
+                            <label class="form-label" for="username">Tên hiển thị <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text">
                                     <i class="fa-solid fa-user"></i>
                                 </span>
-                                {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else ""), placeholder="Nhập username", id="username", required=True) }}
+                                {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else ""), placeholder="Nhập username (3-20 ký tự)", id="username", required=True, minlength="3", maxlength="20", pattern="^[a-zA-Z0-9_]+$", title="Tên đăng nhập từ 3-20 ký tự, chỉ gồm chữ, số và dấu gạch dưới") }}
                             </div>
+                            <div class="form-text small text-muted">Từ 3-20 ký tự, chỉ chứa chữ cái, số và dấu gạch dưới.</div>
                             {% for error in form.username.errors %}
                                 <div class="text-danger small mt-1">{{ error }}</div>
                             {% endfor %}
@@ -36,13 +37,14 @@
 
                         <!-- Email -->
                         <div class="mb-3">
-                            <label class="form-label" for="email">Email</label>
+                            <label class="form-label" for="email">Email sinh viên <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text">
                                     <i class="fa-solid fa-envelope"></i>
                                 </span>
-                                {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""), placeholder="Nhập email", id="email", required=True) }}
+                                {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""), placeholder="ví dụ: sinhvien@fpt.edu.vn", id="email", type="email", required=True, pattern="^[a-zA-Z0-9._%+-]+@([a-zA-Z0-9-]+\.)*(edu\.vn|edu)$", title="Email đăng ký phải có đuôi @*.edu.vn hoặc @*.edu") }}
                             </div>
+                            <div class="form-text small text-muted">Bắt buộc dùng email giáo dục (@*.edu.vn hoặc @*.edu).</div>
                             {% for error in form.email.errors %}
                                 <div class="text-danger small mt-1">{{ error }}</div>
                             {% endfor %}
@@ -50,13 +52,14 @@
 
                         <!-- Password -->
                         <div class="mb-3">
-                            <label class="form-label" for="password">Mật khẩu</label>
+                            <label class="form-label" for="password">Mật khẩu <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text">
                                     <i class="fa-solid fa-lock"></i>
                                 </span>
-                                {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""), placeholder="Nhập mật khẩu", id="password", required=True) }}
+                                {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""), placeholder="Nhập mật khẩu (tối thiểu 6 ký tự)", id="password", required=True, minlength="6", title="Mật khẩu phải có ít nhất 6 ký tự") }}
                             </div>
+                            <div class="form-text small text-muted">Tối thiểu 6 ký tự.</div>
                             {% for error in form.password.errors %}
                                 <div class="text-danger small mt-1">{{ error }}</div>
                             {% endfor %}
@@ -64,12 +67,12 @@
 
                         <!-- Confirm Password -->
                         <div class="mb-4">
-                            <label class="form-label" for="confirm_password">Nhập lại mật khẩu</label>
+                            <label class="form-label" for="confirm_password">Nhập lại mật khẩu <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text">
                                     <i class="fa-solid fa-lock"></i>
                                 </span>
-                                {{ form.confirm_password(class="form-control" + (" is-invalid" if form.confirm_password.errors else ""), placeholder="Nhập lại mật khẩu", id="confirm_password", required=True) }}
+                                {{ form.confirm_password(class="form-control" + (" is-invalid" if form.confirm_password.errors else ""), placeholder="Nhập lại chính xác mật khẩu", id="confirm_password", required=True, minlength="6") }}
                             </div>
                             {% for error in form.confirm_password.errors %}
                                 <div class="text-danger small mt-1">{{ error }}</div>

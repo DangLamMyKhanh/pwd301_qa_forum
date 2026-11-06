@@ -21,13 +21,13 @@
                         {% endif %}
                     </h2>
                     {% if is_own_profile %}
-                        <p class="mb-0 text-white-50">
-                            <i class="fa-solid fa-envelope me-1"></i>
-                            {{ profile_user.email }}
-                            <span class="badge bg-light text-dark ms-2">
-                                Hồ sơ của bạn
-                            </span>
-                        </p>
+                        <div class="mt-2 d-flex align-items-center flex-wrap gap-2">
+                            <span class="text-white-50"><i class="fa-solid fa-envelope me-1"></i>{{ profile_user.email }}</span>
+                            <span class="badge bg-light text-dark">Hồ sơ của bạn</span>
+                            <a href="{{ url_for('auth.change_password') }}" class="btn btn-sm btn-outline-light py-0">
+                                <i class="fa-solid fa-key me-1"></i>Đổi mật khẩu
+                            </a>
+                        </div>
                     {% endif %}
                 </div>
             </div>
@@ -44,9 +44,9 @@
                     <h4 class="fw-bold text-success mb-0 mt-1">{{ answers|length }}</h4>
                 </div>
                 <div class="col-4">
-                    <span class="text-secondary small fw-semibold">Điểm uy tín (Votes nhận được)</span>
+                    <span class="text-secondary small fw-semibold">Điểm uy tín (Reputation)</span>
                     <h4 class="fw-bold text-warning mb-0 mt-1">
-                        <i class="fa-solid fa-star me-1"></i>{{ total_votes }}
+                        <i class="fa-solid fa-star me-1"></i>{{ profile_user.reputation or 0 }}
                     </h4>
                 </div>
             </div>

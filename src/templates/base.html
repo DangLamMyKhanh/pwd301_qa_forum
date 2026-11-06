@@ -77,6 +77,7 @@
                         {% endif %}
                         <a href="{{ url_for('auth.profile') }}" class="btn btn-outline-light btn-sm me-2 text-white text-decoration-none" title="Xem hồ sơ cá nhân">
                             <i class="fa-solid fa-circle-user me-1"></i> {{ current_user.username }}
+                            <span class="badge bg-warning text-dark ms-1" title="Điểm uy tín (Reputation)"><i class="fa-solid fa-star me-1"></i>{{ current_user.reputation or 0 }}</span>
                         </a>
                         <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-light btn-sm">
                             <i class="fa-solid fa-right-from-bracket me-1"></i> Đăng xuất

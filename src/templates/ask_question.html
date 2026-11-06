@@ -25,9 +25,9 @@
                             <label for="title" class="form-label fw-semibold">
                                 {{ form.title.label.text }} <span class="text-danger">*</span>
                             </label>
-                            {{ form.title(class="form-control" + (" is-invalid" if form.title.errors else ""), id="title", placeholder="Ví dụ: Làm thế nào để kết nối Flask với SQL Server?") }}
+                            {{ form.title(class="form-control" + (" is-invalid" if form.title.errors else ""), id="title", placeholder="Ví dụ: Làm thế nào để kết nối Flask với SQL Server?", required=True, minlength="5", maxlength="200") }}
                             <div class="form-text">
-                                Viết tiêu đề ngắn gọn và mô tả đúng vấn đề.
+                                Viết tiêu đề ngắn gọn và mô tả đúng vấn đề (từ 5 đến 200 ký tự).
                             </div>
                             {% for error in form.title.errors %}
                                 <div class="text-danger small mt-1">{{ error }}</div>
@@ -39,9 +39,9 @@
                             <label for="content" class="form-label fw-semibold">
                                 {{ form.content.label.text }} <span class="text-danger">*</span>
                             </label>
-                            {{ form.content(class="form-control" + (" is-invalid" if form.content.errors else ""), id="content", rows="8", placeholder="Nhập nội dung chi tiết câu hỏi của bạn...") }}
+                            {{ form.content(class="form-control" + (" is-invalid" if form.content.errors else ""), id="content", rows="8", placeholder="Nhập nội dung chi tiết câu hỏi của bạn (tối thiểu 10 ký tự)...", required=True, minlength="10") }}
                             <div class="form-text">
-                                Hỗ trợ các thẻ định dạng văn bản cơ bản (b, i, code, pre,...).
+                                Hỗ trợ các thẻ định dạng văn bản cơ bản (b, i, code, pre,...). Tối thiểu 10 ký tự.
                             </div>
                             {% for error in form.content.errors %}
                                 <div class="text-danger small mt-1">{{ error }}</div>
@@ -53,7 +53,7 @@
                             <label for="tags" class="form-label fw-semibold">
                                 {{ form.tags.label.text }} <span class="text-danger">*</span>
                             </label>
-                            {{ form.tags(class="form-control" + (" is-invalid" if form.tags.errors else ""), id="tags", placeholder="Ví dụ: Python, Flask, SQL Server") }}
+                            {{ form.tags(class="form-control" + (" is-invalid" if form.tags.errors else ""), id="tags", placeholder="Ví dụ: Python, Flask, SQL Server", required=True) }}
                             <div class="form-text">
                                 Nhập các chủ đề liên quan đến câu hỏi, cách nhau bằng dấu phẩy.
                             </div>

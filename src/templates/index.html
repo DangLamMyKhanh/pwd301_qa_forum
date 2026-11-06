@@ -116,7 +116,7 @@
                         <!-- CỘT THỐNG KÊ: VOTE / ANSWERS / VIEWS -->
                         <div class="col-3 col-md-2 text-center border-end">
                             <div class="mb-2">
-                                <strong>{{ question.answers | sum(attribute='upvotes') if question.answers else 0 }}</strong>
+                                <strong>{{ question.upvotes or 0 }}</strong>
                                 <div class="text-secondary small">
                                     Votes
                                 </div>
@@ -144,6 +144,15 @@
                                    class="text-decoration-none fw-bold text-dark">
                                     {{ question.title }}
                                 </a>
+                                {% if question.is_locked %}
+                                    <span class="badge bg-secondary ms-1" style="font-size: 0.75rem;"><i class="fa-solid fa-lock me-1"></i>Đã khóa</span>
+                                {% endif %}
+                                {% if question.is_hidden %}
+                                    <span class="badge bg-danger ms-1" style="font-size: 0.75rem;"><i class="fa-solid fa-eye-slash me-1"></i>Đã ẩn</span>
+                                {% endif %}
+                                {% if question.answers and question.answers | selectattr('is_best') | list | length > 0 %}
+                                    <span class="badge bg-success ms-1" style="font-size: 0.75rem;"><i class="fa-solid fa-check me-1"></i>Đã giải quyết</span>
+                                {% endif %}
                             </h5>
                             <p class="text-secondary mb-2" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
                                 {{ question.content | striptags }}
@@ -162,6 +171,7 @@
                                     <a href="{{ url_for('auth.user_profile', user_id=question.author.id) }}" class="fw-semibold text-dark text-decoration-none text-primary-hover">
                                         <i class="fa-solid fa-circle-user me-1"></i>{{ question.author.username }}
                                     </a>
+                                    <span class="badge bg-light text-dark border ms-1" title="Điểm uy tín"><i class="fa-solid fa-star text-warning me-1"></i>{{ question.author.reputation or 0 }}</span>
                                 {% else %}
                                     <span class="text-dark">Ẩn danh</span>
                                 {% endif %}

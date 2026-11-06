@@ -10,7 +10,7 @@ Gồm 4 form:
 
 import re
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, TextAreaField
+from wtforms import StringField, PasswordField, SubmitField, TextAreaField, BooleanField
 from wtforms.validators import DataRequired, Email, Length, EqualTo, Regexp
 
 # ---------------------------------------------------------------------------
@@ -91,7 +91,33 @@ class LoginForm(FlaskForm):
         "Mật khẩu",
         validators=[DataRequired(message="Vui lòng nhập mật khẩu.")],
     )
+    remember_me = BooleanField("Ghi nhớ đăng nhập", default=False)
     submit = SubmitField("Đăng nhập")
+
+
+# ---------------------------------------------------------------------------
+# Task 1.3b: Form đổi mật khẩu (Theo Rubric CLO5: Password change functionality)
+# ---------------------------------------------------------------------------
+class ChangePasswordForm(FlaskForm):
+    old_password = PasswordField(
+        "Mật khẩu hiện tại",
+        validators=[DataRequired(message="Vui lòng nhập mật khẩu hiện tại.")],
+    )
+    new_password = PasswordField(
+        "Mật khẩu mới",
+        validators=[
+            DataRequired(message="Vui lòng nhập mật khẩu mới."),
+            Length(min=6, message="Mật khẩu mới phải có ít nhất 6 ký tự."),
+        ],
+    )
+    confirm_password = PasswordField(
+        "Xác nhận mật khẩu mới",
+        validators=[
+            DataRequired(message="Vui lòng nhập lại mật khẩu mới."),
+            EqualTo("new_password", message="Mật khẩu xác nhận không khớp."),
+        ],
+    )
+    submit = SubmitField("Cập nhật mật khẩu")
 
 
 # ---------------------------------------------------------------------------

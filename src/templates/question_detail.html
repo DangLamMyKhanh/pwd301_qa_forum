@@ -8,10 +8,35 @@
         </a>
     </div>
 
+    <!-- CẢNH BÁO NẾU CÂU HỎI BỊ KHÓA HOẶC ẨN -->
+    {% if question.is_locked %}
+        <div class="alert alert-secondary d-flex align-items-center mb-4">
+            <i class="fa-solid fa-lock fa-lg text-secondary me-3"></i>
+            <div>
+                <strong>Câu hỏi đã bị khóa:</strong> Quản trị viên đã khóa cuộc thảo luận này. Người dùng không thể gửi thêm câu trả lời mới.
+            </div>
+        </div>
+    {% endif %}
+
+    {% if question.is_hidden %}
+        <div class="alert alert-warning d-flex align-items-center mb-4">
+            <i class="fa-solid fa-triangle-exclamation fa-lg text-warning me-3"></i>
+            <div>
+                <strong>[Kiểm duyệt] Câu hỏi đang bị ẩn:</strong> Bài viết này đã bị Kiểm duyệt viên ẩn do vi phạm quy chuẩn cộng đồng.
+            </div>
+        </div>
+    {% endif %}
+
     <!-- TIÊU ĐỀ CÂU HỎI -->
     <div class="mb-4">
-        <h2 class="fw-bold">
-            {{ question.title }}
+        <h2 class="fw-bold d-flex align-items-center gap-2 flex-wrap">
+            <span>{{ question.title }}</span>
+            {% if question.is_locked %}
+                <span class="badge bg-secondary fs-6"><i class="fa-solid fa-lock me-1"></i>Đã khóa</span>
+            {% endif %}
+            {% if question.is_hidden %}
+                <span class="badge bg-danger fs-6"><i class="fa-solid fa-eye-slash me-1"></i>Đã ẩn</span>
+            {% endif %}
         </h2>
         <p class="text-secondary mb-0">
             Đăng bởi
@@ -19,6 +44,7 @@
                 <a href="{{ url_for('auth.user_profile', user_id=question.author.id) }}" class="text-decoration-none fw-bold text-dark">
                     <i class="fa-solid fa-circle-user me-1 text-primary"></i>{{ question.author.username }}
                 </a>
+                <span class="badge bg-light text-dark border ms-1" title="Điểm uy tín (Reputation)"><i class="fa-solid fa-star text-warning me-1"></i>{{ question.author.reputation or 0 }}</span>
             {% else %}
                 <strong class="text-dark">Ẩn danh</strong>
             {% endif %}
@@ -30,26 +56,49 @@
     </div>
 
     <!-- CÂU HỎI CHÍNH -->
-    <div class="card shadow-sm mb-5">
+    <div class="card shadow-sm mb-5 {{ 'border-warning' if question.is_hidden else '' }}">
         <div class="card-body">
             <div class="row">
-                <!-- CỘT THỐNG KÊ -->
+                <!-- CỘT VOTE CÂU HỎI (AJAX) & THỐNG KÊ -->
                 <div class="col-2 col-md-1 text-center">
-                    <div class="p-2 bg-light rounded text-center">
-                        <i class="fa-solid fa-comments text-primary fa-lg mb-1"></i>
-                        <h5 class="fw-bold mb-0">{{ question.answers|length }}</h5>
-                        <small class="text-muted" style="font-size: 0.75rem;">trả lời</small>
+                    <button class="btn {{ 'btn-success text-white' if user_question_vote == 1 else 'btn-light' }} border btn-sm mb-1 vote-question-btn" 
+                            id="btn-q-up-{{ question.id }}" 
+                            data-question-id="{{ question.id }}" 
+                            data-type="up" 
+                            title="Upvote (+1)">
+                        <i class="fa-solid fa-caret-up fa-lg"></i>
+                    </button>
+                    <h5 class="fw-bold mb-1 question-votes" id="q-votes-{{ question.id }}">{{ question.upvotes or 0 }}</h5>
+                    <button class="btn {{ 'btn-danger text-white' if user_question_vote == -1 else 'btn-light' }} border btn-sm mt-1 vote-question-btn" 
+                            id="btn-q-down-{{ question.id }}" 
+                            data-question-id="{{ question.id }}" 
+                            data-type="down" 
+                            title="Downvote (-1)">
+                        <i class="fa-solid fa-caret-down fa-lg"></i>
+                    </button>
+                    <span class="text-secondary small d-block mt-1 mb-2">votes</span>
+
+                    <div class="p-1 bg-light rounded text-center border mt-2">
+                        <i class="fa-solid fa-comments text-primary"></i>
+                        <div class="fw-bold" style="font-size: 0.85rem;">{{ question.answers|length }}</div>
+                        <small class="text-muted" style="font-size: 0.65rem;">trả lời</small>
                     </div>
                 </div>
 
                 <!-- NỘI DUNG CÂU HỎI -->
                 <div class="col-10 col-md-11">
-                    <div class="fs-6 lh-base mb-3">
-                        {{ question.content | safe }}
-                    </div>
+                    {% if question.is_hidden and not (current_user.is_authenticated and (current_user.role in ['admin', 'moderator'] or current_user.id == question.user_id)) %}
+                        <div class="alert alert-secondary py-3 text-muted">
+                            <i class="fa-solid fa-eye-slash me-2"></i>Nội dung câu hỏi này đã bị ẩn bởi Kiểm duyệt viên do vi phạm quy chuẩn cộng đồng.
+                        </div>
+                    {% else %}
+                        <div class="fs-6 lh-base mb-3">
+                            {{ question.content | safe }}
+                        </div>
+                    {% endif %}
 
-                    <!-- TAG & NÚT KIỂM DUYỆT (ADMIN / MOD / TÁC GIẢ) -->
-                    <div class="mt-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <!-- TAG & NÚT KIỂM DUYỆT (RBAC: ADMIN / MODERATOR / TÁC GIẢ) -->
+                    <div class="mt-3 d-flex justify-content-between align-items-center flex-wrap gap-2 pt-2 border-top">
                         <div>
                             {% for tag in question.tags %}
                                 <a href="{{ url_for('main.index', tag=tag.name) }}" class="badge bg-primary text-decoration-none me-1">
@@ -57,14 +106,40 @@
                                 </a>
                             {% endfor %}
                         </div>
-                        {% if current_user.is_authenticated and (current_user.role in ['admin', 'moderator', 'mod'] or current_user.id == question.user_id) %}
-                            <form action="{{ url_for('main.delete_question', question_id=question.id) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn xóa câu hỏi này không?');" class="d-inline">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn btn-outline-danger btn-sm">
-                                    <i class="fa-solid fa-trash me-1"></i> Xóa câu hỏi
-                                </button>
-                            </form>
-                        {% endif %}
+
+                        <div class="d-flex align-items-center gap-2">
+                            <!-- 1. Moderator & Admin: Ẩn / Hiện vi phạm (hide violations) -->
+                            {% if current_user.is_authenticated and current_user.role in ['admin', 'moderator'] %}
+                                <form action="{{ url_for('main.hide_question', question_id=question.id) }}" method="POST" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-outline-warning btn-sm" title="Kiểm duyệt viên: Ẩn vi phạm">
+                                        <i class="fa-solid fa-{{ 'eye' if question.is_hidden else 'eye-slash' }} me-1"></i>
+                                        {{ 'Bỏ ẩn câu hỏi' if question.is_hidden else 'Ẩn câu hỏi (Vi phạm)' }}
+                                    </button>
+                                </form>
+                            {% endif %}
+
+                            <!-- 2. Admin Only: Khóa / Mở khóa bài viết (lock post) -->
+                            {% if current_user.is_authenticated and current_user.role == 'admin' %}
+                                <form action="{{ url_for('main.lock_question', question_id=question.id) }}" method="POST" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-outline-secondary btn-sm" title="Admin: Khóa bài viết">
+                                        <i class="fa-solid fa-{{ 'lock-open' if question.is_locked else 'lock' }} me-1"></i>
+                                        {{ 'Mở khóa' if question.is_locked else 'Khóa câu hỏi' }}
+                                    </button>
+                                </form>
+                            {% endif %}
+
+                            <!-- 3. Admin & Post Owner Only: Xóa câu hỏi (delete post) -->
+                            {% if current_user.is_authenticated and (current_user.role == 'admin' or current_user.id == question.user_id) %}
+                                <form action="{{ url_for('main.delete_question', question_id=question.id) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn xóa vĩnh viễn câu hỏi này không?');" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Xóa vĩnh viễn">
+                                        <i class="fa-solid fa-trash me-1"></i> Xóa câu hỏi
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -76,9 +151,17 @@
         {{ question.answers|length }} Câu trả lời
     </h4>
 
-    {% for answer in question.answers %}
-        <div class="card shadow-sm mb-3">
+    {% for answer in question.answers | sort(attribute='is_best', reverse=True) %}
+        <div class="card shadow-sm mb-3 {{ 'border-success border-2' if answer.is_best else ('border-warning' if answer.is_hidden else '') }}" id="answer-card-{{ answer.id }}">
             <div class="card-body">
+                {% if answer.is_best %}
+                    <div class="mb-2">
+                        <span class="badge bg-success py-1 px-2 fs-6">
+                            <i class="fa-solid fa-circle-check me-1"></i> Câu trả lời hay nhất (Best Answer)
+                        </span>
+                    </div>
+                {% endif %}
+
                 <div class="row align-items-center">
                     <!-- CỘT VOTE CỦA CÂU TRẢ LỜI (AJAX) -->
                     <div class="col-2 col-md-1 text-center">
@@ -102,26 +185,63 @@
 
                     <!-- NỘI DUNG CÂU TRẢ LỜI -->
                     <div class="col-10 col-md-11">
-                        <div class="fs-6 lh-base">
-                            {{ answer.content | safe }}
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
-                            <div>
-                                {% if current_user.is_authenticated and (current_user.role in ['admin', 'moderator', 'mod'] or current_user.id == answer.user_id) %}
+                        {% if answer.is_hidden and not (current_user.is_authenticated and (current_user.role in ['admin', 'moderator'] or current_user.id == answer.user_id)) %}
+                            <div class="alert alert-secondary py-2 text-muted">
+                                <i class="fa-solid fa-eye-slash me-2"></i>Câu trả lời này đã bị ẩn bởi Kiểm duyệt viên.
+                            </div>
+                        {% else %}
+                            {% if answer.is_hidden %}
+                                <div class="badge bg-warning text-dark mb-2">
+                                    <i class="fa-solid fa-triangle-exclamation me-1"></i> [Kiểm duyệt] Câu trả lời này đang bị ẩn đối với sinh viên.
+                                </div>
+                            {% endif %}
+                            <div class="fs-6 lh-base">
+                                {{ answer.content | safe }}
+                            </div>
+                        {% endif %}
+
+                        <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top flex-wrap gap-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <!-- Đánh dấu Best Answer (Chỉ dành cho Tác giả câu hỏi theo Rubric Topic 5 Step 5 & 7) -->
+                                {% if current_user.is_authenticated and current_user.id == question.user_id %}
+                                    <button class="btn {{ 'btn-success text-white' if answer.is_best else 'btn-outline-success' }} btn-sm best-answer-btn"
+                                            id="btn-best-{{ answer.id }}"
+                                            data-answer-id="{{ answer.id }}"
+                                            title="{{ 'Bỏ chọn câu trả lời hay nhất' if answer.is_best else 'Đánh dấu là câu trả lời hay nhất (+15 điểm uy tín)' }}">
+                                        <i class="fa-solid fa-check-circle me-1"></i>
+                                        <span>{{ 'Đã chọn Best Answer' if answer.is_best else 'Chọn Best Answer' }}</span>
+                                    </button>
+                                {% endif %}
+
+                                <!-- Moderator & Admin: Ẩn / Hiện câu trả lời vi phạm -->
+                                {% if current_user.is_authenticated and current_user.role in ['admin', 'moderator'] %}
+                                    <form action="{{ url_for('main.hide_answer', answer_id=answer.id) }}" method="POST" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-link text-warning text-decoration-none btn-sm p-0">
+                                            <i class="fa-solid fa-{{ 'eye' if answer.is_hidden else 'eye-slash' }} me-1"></i>
+                                            {{ 'Bỏ ẩn' if answer.is_hidden else 'Ẩn vi phạm' }}
+                                        </button>
+                                    </form>
+                                {% endif %}
+
+                                <!-- Admin & Post Owner: Xóa câu trả lời -->
+                                {% if current_user.is_authenticated and (current_user.role == 'admin' or current_user.id == answer.user_id) %}
                                     <form action="{{ url_for('main.delete_answer', answer_id=answer.id) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn xóa câu trả lời này?');" class="d-inline">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="btn btn-link text-danger text-decoration-none btn-sm p-0">
+                                        <button type="submit" class="btn btn-link text-danger text-decoration-none btn-sm p-0 ms-2">
                                             <i class="fa-solid fa-trash-can me-1"></i> Xóa
                                         </button>
                                     </form>
                                 {% endif %}
                             </div>
+
                             <p class="text-secondary mb-0 small">
                                 Trả lời bởi
                                 {% if answer.author %}
                                     <a href="{{ url_for('auth.user_profile', user_id=answer.author.id) }}" class="text-decoration-none fw-bold text-dark">
                                         <i class="fa-solid fa-circle-user me-1 text-success"></i>{{ answer.author.username }}
                                     </a>
+                                    <span class="badge bg-light text-dark border ms-1" title="Điểm uy tín"><i class="fa-solid fa-star text-warning me-1"></i>{{ answer.author.reputation or 0 }}</span>
                                 {% else %}
                                     <strong class="text-dark">Ẩn danh</strong>
                                 {% endif %}
@@ -147,7 +267,12 @@
             <h4 class="fw-bold mb-3">
                 Câu trả lời của bạn
             </h4>
-            {% if current_user.is_authenticated %}
+            {% if question.is_locked and current_user.role != 'admin' %}
+                <div class="alert alert-secondary mb-0">
+                    <i class="fa-solid fa-lock me-2"></i>
+                    <strong>Chủ đề đã bị khóa:</strong> Quản trị viên đã khóa cuộc thảo luận này nên không thể gửi thêm câu trả lời mới.
+                </div>
+            {% elif current_user.is_authenticated %}
                 <form method="POST" action="{{ url_for('main.add_answer', question_id=question.id) }}">
                     {{ form.csrf_token }}
                     <div class="mb-3">

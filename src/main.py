@@ -2,9 +2,11 @@ import bleach
 from datetime import datetime, timedelta
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, abort, current_app
 from sqlalchemy import func
+from sqlalchemy.orm import joinedload, selectinload
 from flask_login import login_required, current_user
-from src.models import db, Question, Answer, Tag, SecurityAuditLog, Vote
+from src.models import db, Question, Answer, Tag, SecurityAuditLog, Vote, adjust_reputation, Permission
 from src.forms import QuestionForm, AnswerForm
+from src.auth import role_required, permission_required
 
 main_bp = Blueprint('main', __name__)
 
@@ -19,7 +21,21 @@ def index():
     tag_filter = request.args.get('tag', '').strip()
     sort_by = request.args.get('sort', 'newest').strip()
 
-    query = Question.query
+    # Tối ưu hóa N+1 Query: Sử dụng Eager Loading (joinedload, selectinload) theo chuẩn Rubric CLO4
+    # Thay vì lazy load 1 + 20 (author) + 20 (tags) + 20 (answers) = 61 queries,
+    # Eager loading tải trước dữ liệu liên kết, giảm xuống còn đúng 3 queries.
+    query = Question.query.options(
+        joinedload(Question.author),
+        selectinload(Question.tags),
+        selectinload(Question.answers)
+    )
+
+    # Ẩn câu hỏi vi phạm đối với sinh viên thông thường (Moderator và Admin vẫn thấy để kiểm duyệt)
+    if not (current_user.is_authenticated and current_user.role in ['admin', 'moderator']):
+        if current_user.is_authenticated:
+            query = query.filter((Question.is_hidden == False) | (Question.user_id == current_user.id))
+        else:
+            query = query.filter(Question.is_hidden == False)
 
     # Tìm kiếm theo từ khóa (tiêu đề hoặc nội dung)
     if search_query:
@@ -40,7 +56,7 @@ def index():
             .correlate(Question)
             .scalar_subquery()
         )
-        query = query.order_by(subquery.desc(), Question.created_at.desc(), Question.id.desc())
+        query = query.order_by((Question.upvotes + subquery).desc(), Question.created_at.desc(), Question.id.desc())
     else:
         sort_by = 'newest'
         query = query.order_by(Question.created_at.desc(), Question.id.desc())
@@ -70,7 +86,12 @@ def index():
 # ===========================================================================
 @main_bp.route('/question/<int:question_id>')
 def question_detail(question_id):
-    question = Question.query.get_or_404(question_id)
+    # Tối ưu hóa N+1: Eager load thông tin Author, Tags, Answers và Author của từng Answer
+    question = Question.query.options(
+        joinedload(Question.author),
+        selectinload(Question.tags),
+        selectinload(Question.answers).joinedload(Answer.author)
+    ).get_or_404(question_id)
 
     # Tăng lượt xem cho câu hỏi (Chỉ tăng nếu người xem không phải là tác giả của câu hỏi)
     if not (current_user.is_authenticated and current_user.id == question.user_id):
@@ -79,14 +100,26 @@ def question_detail(question_id):
 
     form = AnswerForm()
 
-    # Truy vấn trạng thái bình chọn của user hiện tại cho các câu trả lời
+    # Truy vấn trạng thái bình chọn của user hiện tại cho câu hỏi và các câu trả lời
     user_votes = {}
-    if current_user.is_authenticated and question.answers:
-        answer_ids = [a.id for a in question.answers]
-        votes = Vote.query.filter_by(user_id=current_user.id).filter(Vote.answer_id.in_(answer_ids)).all()
-        user_votes = {v.answer_id: v.vote_type for v in votes}
+    user_question_vote = 0
+    if current_user.is_authenticated:
+        q_vote = Vote.query.filter_by(user_id=current_user.id, question_id=question.id).first()
+        if q_vote:
+            user_question_vote = q_vote.vote_type
 
-    return render_template('question_detail.html', question=question, form=form, user_votes=user_votes)
+        if question.answers:
+            answer_ids = [a.id for a in question.answers]
+            votes = Vote.query.filter_by(user_id=current_user.id).filter(Vote.answer_id.in_(answer_ids)).all()
+            user_votes = {v.answer_id: v.vote_type for v in votes}
+
+    return render_template(
+        'question_detail.html',
+        question=question,
+        form=form,
+        user_votes=user_votes,
+        user_question_vote=user_question_vote
+    )
 
 
 # ===========================================================================
@@ -96,6 +129,12 @@ def question_detail(question_id):
 @login_required
 def add_answer(question_id):
     question = Question.query.get_or_404(question_id)
+
+    # Nếu câu hỏi đã bị Admin khóa -> Chặn không cho gửi câu trả lời
+    if question.is_locked and current_user.role != 'admin':
+        flash("Câu hỏi này đã bị khóa bởi Quản trị viên, không thể gửi câu trả lời mới!", "warning")
+        return redirect(url_for('main.question_detail', question_id=question.id))
+
     form = AnswerForm()
 
     if form.validate_on_submit():
@@ -190,23 +229,24 @@ def ask_question():
 
 
 # ===========================================================================
-# 5. XÓA CÂU HỎI (PHÂN QUYỀN RBAC: ADMIN / MODERATOR HOẶC TÁC GIẢ BÀI VIẾT)
+# 5. XÓA CÂU HỎI (PHÂN QUYỀN RBAC: CHỈ ADMIN HOẶC TÁC GIẢ BÀI VIẾT)
+# (Theo Rubric: Admin delete/lock posts; Moderator hide violations; Student ask/answer)
 # ===========================================================================
 @main_bp.route('/question/<int:question_id>/delete', methods=['POST'])
 @login_required
 def delete_question(question_id):
     question = Question.query.get_or_404(question_id)
 
-    # Kiểm tra phân quyền RBAC & Quyền sở hữu (Ownership Check chống IDOR)
-    is_admin_or_mod = current_user.role in ['admin', 'moderator']
+    # Chỉ Admin hoặc chính tác giả câu hỏi mới có quyền xóa
+    is_admin = current_user.role == 'admin'
     is_owner = current_user.id == question.user_id
 
-    if not (is_admin_or_mod or is_owner):
+    if not (is_admin or is_owner):
         # Ghi nhận nỗ lực xóa trái phép vào Audit Log
         log = SecurityAuditLog(
             user_id=current_user.id,
             ip_address=request.remote_addr,
-            action=f"Cảnh báo IDOR: User '{current_user.username}' cố tình xóa câu hỏi #{question.id} mà không có quyền"
+            action=f"Cảnh báo RBAC/IDOR: User '{current_user.username}' (role: {current_user.role}) cố tình xóa câu hỏi #{question.id} mà không có quyền"
         )
         db.session.add(log)
         db.session.commit()
@@ -220,7 +260,7 @@ def delete_question(question_id):
 
 
 # ===========================================================================
-# 6. XÓA CÂU TRẢ LỜI (PHÂN QUYỀN RBAC: ADMIN / MODERATOR HOẶC TÁC GIẢ BÀI VIẾT)
+# 6. XÓA CÂU TRẢ LỜI (PHÂN QUYỀN RBAC: CHỈ ADMIN HOẶC TÁC GIẢ BÀI VIẾT)
 # ===========================================================================
 @main_bp.route('/answer/<int:answer_id>/delete', methods=['POST'])
 @login_required
@@ -228,14 +268,14 @@ def delete_answer(answer_id):
     answer = Answer.query.get_or_404(answer_id)
     question_id = answer.question_id
 
-    is_admin_or_mod = current_user.role in ['admin', 'moderator']
+    is_admin = current_user.role == 'admin'
     is_owner = current_user.id == answer.user_id
 
-    if not (is_admin_or_mod or is_owner):
+    if not (is_admin or is_owner):
         log = SecurityAuditLog(
             user_id=current_user.id,
             ip_address=request.remote_addr,
-            action=f"Cảnh báo IDOR: User '{current_user.username}' cố tình xóa câu trả lời #{answer.id} mà không có quyền"
+            action=f"Cảnh báo RBAC/IDOR: User '{current_user.username}' (role: {current_user.role}) cố tình xóa câu trả lời #{answer.id} mà không có quyền"
         )
         db.session.add(log)
         db.session.commit()
@@ -246,3 +286,98 @@ def delete_answer(answer_id):
 
     flash("Đã xóa câu trả lời thành công!", "success")
     return redirect(url_for('main.question_detail', question_id=question_id))
+
+
+# ===========================================================================
+# 7. KHÓA / MỞ KHÓA BÀI VIẾT (PHÂN QUYỀN RBAC: ADMIN ONLY - SỬ DỤNG @permission_required)
+# ===========================================================================
+@main_bp.route('/question/<int:question_id>/lock', methods=['POST'])
+@login_required
+@permission_required(Permission.LOCK_POST)
+def lock_question(question_id):
+    question = Question.query.get_or_404(question_id)
+    question.is_locked = not question.is_locked
+
+    log = SecurityAuditLog(
+        user_id=current_user.id,
+        ip_address=request.remote_addr,
+        action=f"Admin '{current_user.username}' đã {'khóa' if question.is_locked else 'mở khóa'} câu hỏi #{question.id}"
+    )
+    db.session.add(log)
+    db.session.commit()
+
+    flash("Đã khóa câu hỏi!" if question.is_locked else "Đã mở khóa câu hỏi!", "success")
+    return redirect(url_for('main.question_detail', question_id=question.id))
+
+
+# ===========================================================================
+# 8. ẨN / HIỆN BÀI VIẾT VI PHẠM (PHÂN QUYỀN RBAC: MODERATOR & ADMIN - SỬ DỤNG @permission_required)
+# ===========================================================================
+@main_bp.route('/question/<int:question_id>/hide', methods=['POST'])
+@login_required
+@permission_required(Permission.HIDE_VIOLATIONS)
+def hide_question(question_id):
+    question = Question.query.get_or_404(question_id)
+    question.is_hidden = not question.is_hidden
+
+    log = SecurityAuditLog(
+        user_id=current_user.id,
+        ip_address=request.remote_addr,
+        action=f"Kiểm duyệt viên '{current_user.username}' đã {'ẩn' if question.is_hidden else 'bỏ ẩn'} câu hỏi #{question.id}"
+    )
+    db.session.add(log)
+    db.session.commit()
+
+    flash("Đã ẩn câu hỏi vi phạm!" if question.is_hidden else "Đã khôi phục hiển thị câu hỏi!", "info")
+    return redirect(url_for('main.question_detail', question_id=question.id))
+
+
+@main_bp.route('/answer/<int:answer_id>/hide', methods=['POST'])
+@login_required
+@permission_required(Permission.HIDE_VIOLATIONS)
+def hide_answer(answer_id):
+    answer = Answer.query.get_or_404(answer_id)
+    answer.is_hidden = not answer.is_hidden
+
+    log = SecurityAuditLog(
+        user_id=current_user.id,
+        ip_address=request.remote_addr,
+        action=f"Kiểm duyệt viên '{current_user.username}' đã {'ẩn' if answer.is_hidden else 'bỏ ẩn'} câu trả lời #{answer.id}"
+    )
+    db.session.add(log)
+    db.session.commit()
+
+    flash("Đã ẩn câu trả lời vi phạm!" if answer.is_hidden else "Đã khôi phục câu trả lời!", "info")
+    return redirect(url_for('main.question_detail', question_id=answer.question_id))
+
+
+# ===========================================================================
+# 9. ĐÁNH DẤU "BEST ANSWER" (TÁC GIẢ CÂU HỎI ONLY)
+# ===========================================================================
+@main_bp.route('/answer/<int:answer_id>/best', methods=['POST'])
+@login_required
+def toggle_best_answer(answer_id):
+    answer = Answer.query.get_or_404(answer_id)
+    question = answer.question
+
+    # Chỉ tác giả câu hỏi mới có quyền chọn Best Answer
+    if question.user_id != current_user.id:
+        abort(403)
+
+    if answer.is_best:
+        answer.is_best = False
+        adjust_reputation(answer.author, -15)
+        flash("Đã bỏ chọn câu trả lời hay nhất!", "info")
+    else:
+        # Bỏ chọn best answer cũ nếu có
+        for other in question.answers:
+            if other.is_best and other.id != answer.id:
+                other.is_best = False
+                adjust_reputation(other.author, -15)
+
+        answer.is_best = True
+        adjust_reputation(answer.author, 15)
+        flash("Đã đánh dấu là câu trả lời hay nhất (+15 điểm uy tín cho tác giả)!", "success")
+
+    db.session.commit()
+    return redirect(url_for('main.question_detail', question_id=question.id))

@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from datetime import timedelta
 from dotenv import load_dotenv
 from sqlalchemy.engine import URL
 
@@ -11,10 +12,22 @@ class Config:
     """Cấu hình cơ bản cho ứng dụng Flask Student Q&A Forum"""
 
     # 1. Khóa bảo mật Session & JWT Token
-    SECRET_KEY = os.getenv('SECRET_KEY', 'pwd301_secret_key_default')
-    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'pwd301_jwt_secret_key_default')
+    SECRET_KEY = os.getenv('SECRET_KEY', 'pwd301_secret_key_default_32bytes_long_fpt_edu!')
+    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'pwd301_jwt_secret_key_default_32bytes_long_fpt_edu!')
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1) # Cấu hình thời hạn hết hạn JWT Token theo Rubric (Token Expiry)
 
-    # 2. Cấu hình chuỗi kết nối SQL Server (dùng driver pymssql qua TCP/IP)
+    # 2. Cấu hình Session an toàn theo chuẩn Rubric CLO5 (HttpOnly, Secure, Reasonable Timeout)
+    SESSION_COOKIE_HTTPONLY = True              # Chống XSS đọc trộm cookie session từ JavaScript
+    SESSION_COOKIE_SAMESITE = 'Lax'             # Chống tấn công CSRF điều hướng chéo domain
+    SESSION_COOKIE_SECURE = False               # Mặc định False để chạy được trên localhost HTTP
+    PERMANENT_SESSION_LIFETIME = timedelta(hours=2) # Timeout phiên đăng nhập hợp lý: 2 giờ
+
+    # Cấu hình Remember Me an toàn
+    REMEMBER_COOKIE_HTTPONLY = True             # Chống JavaScript truy cập remember cookie
+    REMEMBER_COOKIE_DURATION = timedelta(days=14) # Ghi nhớ đăng nhập trong 14 ngày
+    REMEMBER_COOKIE_SAMESITE = 'Lax'
+
+    # 3. Cấu hình chuỗi kết nối SQL Server (dùng driver pymssql qua TCP/IP)
     SQLALCHEMY_DATABASE_URI = URL.create(
         drivername="mssql+pymssql",
         username=os.getenv("DB_USER", "sa"),
@@ -56,4 +69,6 @@ class TestingConfig(Config):
 
 class ProductionConfig(Config):
     DEBUG = False
+    SESSION_COOKIE_SECURE = True                # Bắt buộc chỉ gửi qua giao thức HTTPS trên môi trường Production
+    REMEMBER_COOKIE_SECURE = True
 

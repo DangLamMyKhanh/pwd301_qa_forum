@@ -1,10 +1,11 @@
 from flask import Blueprint, request, redirect, url_for, flash, abort, render_template, session, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from src.models import db, User, SecurityAuditLog
+from sqlalchemy.orm import selectinload
+from src.models import db, User, SecurityAuditLog, Permission, ROLE_PERMISSIONS
 from functools import wraps
 
-from src.forms import LoginForm, RegistrationForm, QuestionForm, AnswerForm
+from src.forms import LoginForm, RegistrationForm, QuestionForm, AnswerForm, ChangePasswordForm
 from flask_jwt_extended import create_access_token
 
 
@@ -28,9 +29,13 @@ def log_audit(action, user_id=None):
 
 
 # ==========================================
-# 1. BẢO MẬT: CUSTOM DECORATOR (RBAC)
+# 1. BẢO MẬT: CUSTOM DECORATORS (RBAC THEO RUBRIC CRITERIA 6)
 # ==========================================
 def role_required(*roles):
+    """
+    Decorator kiểm tra vai trò người dùng (Role-based Access Control).
+    Ví dụ: @role_required('admin'), @role_required('admin', 'moderator')
+    """
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
@@ -40,6 +45,30 @@ def role_required(*roles):
             # Sai quyền -> ghi log nỗ lực trái phép và trả về 403
             if current_user.role not in roles:
                 log_audit(f"Nỗ lực truy cập trái phép: User '{current_user.username}' (role: {current_user.role}) cố tình vào trang yêu cầu quyền {roles}")
+                abort(403)
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+
+def permission_required(*permissions):
+    """
+    Decorator kiểm tra quyền hạn chi tiết (Permission-based Access Control theo Rubric Criteria 6).
+    Người dùng phải sở hữu ít nhất một trong các quyền được chỉ định (hoặc thông qua role của mình).
+    Ví dụ: @permission_required(Permission.LOCK_POST), @permission_required(Permission.HIDE_VIOLATIONS)
+    """
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            # Chưa đăng nhập -> Về trang login
+            if not current_user.is_authenticated:
+                return redirect(url_for('auth.login'))
+            
+            # Kiểm tra quyền qua phương thức can() của User model
+            has_perm = any(current_user.can(p) for p in permissions) if hasattr(current_user, 'can') else False
+            if not has_perm:
+                perm_names = [str(p) for p in permissions]
+                log_audit(f"Cảnh báo vi phạm RBAC: User '{current_user.username}' (role: {current_user.role}) cố tình thực hiện thao tác yêu cầu quyền {perm_names}")
                 abort(403)
             return f(*args, **kwargs)
         return decorated_function
@@ -105,8 +134,9 @@ def login():
 
         # Nếu có user và mật khẩu sau khi giải băm khớp nhau (dùng Werkzeug)
         if user and check_password_hash(user.password_hash, password):
-            # 1. Cấp session duyệt web
-            login_user(user)
+            # 1. Cấp session duyệt web có hỗ trợ Remember me (Rubric CLO5)
+            remember = getattr(form, 'remember_me', None) and form.remember_me.data
+            login_user(user, remember=remember)
 
             # 2. TẠO CHÌA KHÓA JWT TOKEN (Cho API/AJAX)
             access_token = create_access_token(identity=str(user.id))
@@ -116,6 +146,12 @@ def login():
             log_audit(f"Sự kiện xác thực: Đăng nhập thành công (User: {user.username})", user_id=user.id)
 
             flash('Đăng nhập thành công!', 'success')
+
+            # 4. Chống lỗi Open Redirect (Rubric CLO5: Open redirect prevention on login)
+            next_page = request.args.get('next')
+            if next_page and next_page.startswith('/') and not next_page.startswith('//'):
+                return redirect(next_page)
+
             return redirect(url_for('main.index'))
         else:
             # 4. Ghi Audit Log nỗ lực truy cập trái phép / sai mật khẩu
@@ -144,11 +180,39 @@ def logout():
 
 
 # ==========================================
+# 4b. ĐỔI MẬT KHẨU (RUBRIC CLO5: PASSWORD CHANGE FUNCTIONALITY)
+# ==========================================
+@auth_bp.route('/change-password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    form = ChangePasswordForm()
+
+    if form.validate_on_submit():
+        # Kiểm tra mật khẩu cũ khớp với database hash
+        if not check_password_hash(current_user.password_hash, form.old_password.data):
+            flash("Mật khẩu hiện tại không chính xác!", "danger")
+            return render_template('change_password.html', form=form)
+
+        # Cập nhật mật khẩu mới bằng scrypt hash an toàn
+        current_user.password_hash = generate_password_hash(form.new_password.data)
+        db.session.commit()
+
+        log_audit(f"Sự kiện xác thực: User '{current_user.username}' đã đổi mật khẩu thành công", user_id=current_user.id)
+        flash("Đổi mật khẩu thành công! Vui lòng đăng nhập lại với mật khẩu mới.", "success")
+        logout_user()
+        session.pop('jwt_token', None)
+        return redirect(url_for('auth.login'))
+
+    return render_template('change_password.html', form=form)
+
+
+# ==========================================
 # 5. KHU VỰC QUẢN TRỊ VIÊN & XEM LOG BẢO MẬT (PHÂN TRANG 20 LOG/TRANG)
 # ==========================================
 @auth_bp.route('/admin')
 @auth_bp.route('/admin-only')
 @role_required('admin')
+@permission_required(Permission.VIEW_AUDIT_LOG)
 def admin_dashboard():
     page = request.args.get('page', 1, type=int)
 
@@ -195,7 +259,11 @@ def profile():
 @auth_bp.route('/user/<int:user_id>')
 def user_profile(user_id):
     """Trang xem chi tiết tài khoản của bất kỳ thành viên nào trên diễn đàn"""
-    user = User.query.get_or_404(user_id)
+    # Tối ưu N+1: Tải trước toàn bộ câu hỏi và câu trả lời của user
+    user = User.query.options(
+        selectinload(User.questions),
+        selectinload(User.answers)
+    ).get_or_404(user_id)
 
     # Sắp xếp câu hỏi và câu trả lời mới nhất lên đầu
     user_questions = sorted(user.questions, key=lambda q: q.created_at, reverse=True)
