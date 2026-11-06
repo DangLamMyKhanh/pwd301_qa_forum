@@ -146,6 +146,7 @@ def logout():
 # ==========================================
 # 5. KHU VỰC QUẢN TRỊ VIÊN & XEM LOG BẢO MẬT (PHÂN TRANG 20 LOG/TRANG)
 # ==========================================
+@auth_bp.route('/admin')
 @auth_bp.route('/admin-only')
 @role_required('admin')
 def admin_dashboard():

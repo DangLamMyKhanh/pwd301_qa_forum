@@ -40,10 +40,10 @@ def index():
             .correlate(Question)
             .scalar_subquery()
         )
-        query = query.order_by(subquery.desc(), Question.created_at.desc())
+        query = query.order_by(subquery.desc(), Question.created_at.desc(), Question.id.desc())
     else:
         sort_by = 'newest'
-        query = query.order_by(Question.created_at.desc())
+        query = query.order_by(Question.created_at.desc(), Question.id.desc())
 
     # Phân trang: lấy số lượng từ cấu hình POSTS_PER_PAGE trong config.py
     per_page = current_app.config.get('POSTS_PER_PAGE', 20)
@@ -72,9 +72,10 @@ def index():
 def question_detail(question_id):
     question = Question.query.get_or_404(question_id)
 
-    # Tăng lượt xem cho câu hỏi
-    question.views = (question.views or 0) + 1
-    db.session.commit()
+    # Tăng lượt xem cho câu hỏi (Chỉ tăng nếu người xem không phải là tác giả của câu hỏi)
+    if not (current_user.is_authenticated and current_user.id == question.user_id):
+        question.views = (question.views or 0) + 1
+        db.session.commit()
 
     form = AnswerForm()
 
@@ -151,18 +152,25 @@ def ask_question():
                 flash("Bạn thao tác quá nhanh! Vui lòng đợi 1 phút trước khi đăng bài tiếp.", "danger")
                 return redirect(url_for('main.ask_question'))
 
-        # 4.2. BẢO MẬT: CHỐNG XSS BẰNG BLEACH
+        # 4.2. KIỂM TRA TRÙNG LẶP TIÊU ĐỀ CÂU HỎI
+        title_text = form.title.data.strip()
+        duplicate_q = Question.query.filter_by(user_id=current_user.id, title=title_text).first()
+        if duplicate_q:
+            flash("Bạn đã đăng một câu hỏi có tiêu đề tương tự rồi!", "warning")
+            return redirect(url_for('main.ask_question'))
+
+        # 4.3. BẢO MẬT: CHỐNG XSS BẰNG BLEACH
         raw_content = form.content.data.strip()
         allowed_tags = ['b', 'i', 'strong', 'em', 'p', 'a', 'code', 'pre', 'ul', 'ol', 'li']
         clean_content = bleach.clean(raw_content, tags=allowed_tags, strip=True)
 
         new_q = Question(
-            title=form.title.data.strip(),
+            title=title_text,
             content=clean_content,
             user_id=current_user.id
         )
 
-        # 4.3. XỬ LÝ TAGS
+        # 4.4. XỬ LÝ TAGS
         raw_tags = form.tags.data or ''
         tag_names = [t.strip() for t in raw_tags.split(',') if t.strip()]
         for name in tag_names:
@@ -190,7 +198,7 @@ def delete_question(question_id):
     question = Question.query.get_or_404(question_id)
 
     # Kiểm tra phân quyền RBAC & Quyền sở hữu (Ownership Check chống IDOR)
-    is_admin_or_mod = current_user.role in ['admin', 'moderator', 'mod']
+    is_admin_or_mod = current_user.role in ['admin', 'moderator']
     is_owner = current_user.id == question.user_id
 
     if not (is_admin_or_mod or is_owner):
@@ -220,7 +228,7 @@ def delete_answer(answer_id):
     answer = Answer.query.get_or_404(answer_id)
     question_id = answer.question_id
 
-    is_admin_or_mod = current_user.role in ['admin', 'moderator', 'mod']
+    is_admin_or_mod = current_user.role in ['admin', 'moderator']
     is_owner = current_user.id == answer.user_id
 
     if not (is_admin_or_mod or is_owner):

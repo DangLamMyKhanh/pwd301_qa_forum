@@ -22,7 +22,7 @@ class Config:
         host=os.getenv("DB_SERVER", "127.0.0.1"),
         port=int(os.getenv("DB_PORT", 1433)),
         database=os.getenv("DB_NAME", "qa_forum_db"),
-        query={'charset': 'utf8'}
+        query={'charset': 'UTF-8'}
     )
 
     # 3. Tắt thông báo theo dõi thay đổi của Flask-SQLAlchemy để tối ưu tài nguyên
@@ -32,6 +32,7 @@ class Config:
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_pre_ping": True,  # Kiểm tra kết nối trong pool trước khi sử dụng
         "connect_args": {
+            'charset': 'UTF-8',
             'login_timeout': 5,
             'timeout': 10
         },
