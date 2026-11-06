@@ -10,6 +10,7 @@ Thumbs.db
 # Bỏ qua các file biên dịch của Python
 __pycache__/
 *.pyc
+.pytest_cache/
 
 # BẢO MẬT: TUYỆT ĐỐI KHÔNG PUSH FILE NÀY LÊN (Chứa Secret Key, Pass DB)
 .env
