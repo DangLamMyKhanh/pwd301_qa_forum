@@ -209,9 +209,9 @@ def ask_question():
             user_id=current_user.id
         )
 
-        # 4.4. XỬ LÝ TAGS
+        # 4.4. XỬ LÝ TAGS (Làm sạch, khống chế tối đa 30 ký tự/tag và tối đa 5 tag để chống spam/lỗi DB)
         raw_tags = form.tags.data or ''
-        tag_names = [t.strip() for t in raw_tags.split(',') if t.strip()]
+        tag_names = [t.strip()[:30] for t in raw_tags.split(',') if t.strip()][:5]
         for name in tag_names:
             tag = Tag.query.filter_by(name=name).first()
             if not tag:

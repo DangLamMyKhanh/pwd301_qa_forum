@@ -225,9 +225,9 @@ def create_question():
     db.session.add(question)
 
     if isinstance(tags_data, str):
-        tag_names = [t.strip() for t in tags_data.split(',') if t.strip()]
+        tag_names = [t.strip()[:30] for t in tags_data.split(',') if t.strip()][:5]
     elif isinstance(tags_data, list):
-        tag_names = [str(t).strip() for t in tags_data if str(t).strip()]
+        tag_names = [str(t).strip()[:30] for t in tags_data if str(t).strip()][:5]
     else:
         tag_names = []
 

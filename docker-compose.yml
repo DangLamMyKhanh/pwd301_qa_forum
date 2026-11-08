@@ -23,8 +23,8 @@ services:
       - DB_USER=${DB_USER:-sa}
       - DB_PASSWORD=${DB_PASSWORD:-1}
       # Khóa bảo mật hệ thống & JWT
-      - SECRET_KEY=${SECRET_KEY:-chuoi_bi_mat_project}
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-khoa_bao_mat_jwt}
+      - SECRET_KEY=${SECRET_KEY:-pwd301-qa-forum-flask-secret-key-2026}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-pwd301-qa-forum-jwt-access-secret-2026}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:

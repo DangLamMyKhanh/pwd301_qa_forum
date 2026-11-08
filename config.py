@@ -12,11 +12,11 @@ class Config:
     """Cấu hình cơ bản cho ứng dụng Flask Student Q&A Forum"""
 
     # 1. Khóa bảo mật Session & JWT Token
-    SECRET_KEY = os.getenv('SECRET_KEY', 'pwd301_secret_key_default_32bytes_long_fpt_edu!')
-    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'pwd301_jwt_secret_key_default_32bytes_long_fpt_edu!')
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1) # Cấu hình thời hạn hết hạn JWT Token theo Rubric (Token Expiry)
+    SECRET_KEY = os.getenv('SECRET_KEY', 'pwd301-qa-forum-flask-secret-key-2026')
+    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'pwd301-qa-forum-jwt-access-secret-2026')
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1) # Cấu hình thời hạn hết hạn JWT Token (Token Expiry)
 
-    # 2. Cấu hình Session an toàn theo chuẩn Rubric CLO5 (HttpOnly, Secure, Reasonable Timeout)
+    # 2. Cấu hình Session an toàn (HttpOnly, Secure, Reasonable Timeout)
     SESSION_COOKIE_HTTPONLY = True              # Chống XSS đọc trộm cookie session từ JavaScript
     SESSION_COOKIE_SAMESITE = 'Lax'             # Chống tấn công CSRF điều hướng chéo domain
     SESSION_COOKIE_SECURE = False               # Mặc định False để chạy được trên localhost HTTP
